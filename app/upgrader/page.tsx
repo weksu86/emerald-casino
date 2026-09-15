@@ -45,49 +45,67 @@ export default function UpgraderPage() {
     const greenDegrees = chance * 3.6;
 
     /*
-      conic-gradient alkaa oikealta (0°).
-      Osoitin on ylhäällä (270°).
+      conic-gradient:
+      0° = oikea
+      90° = alas
+      180° = vasen
+      270° = ylös
 
-      Valitaan ensin kohta vihreästä tai harmaasta.
-      Sen jälkeen lasketaan pyörän lopullinen kulma niin,
-      että juuri valittu kohta osuu osoittimen alle.
+      Osoitin on ylhäällä eli 270°.
+
+      Valitaan kohta siitä sektorista, jonka tuloksen
+      haluamme näyttää, ja pyöritetään se osoittimen alle.
     */
 
     let landingAngle: number;
 
     if (won) {
-      // Vihreän alueen keskeltä, pienellä turvamarginaalilla
-      landingAngle =
-        2 + Math.random() * Math.max(greenDegrees - 4, 1);
+      // Valitaan varmasti vihreän alueen sisältä.
+      if (greenDegrees <= 4) {
+        landingAngle = greenDegrees / 2;
+      } else {
+        landingAngle =
+          2 + Math.random() * (greenDegrees - 4);
+      }
     } else {
-      // Harmaan alueen keskeltä
+      // Valitaan varmasti harmaan alueen sisältä.
       const grayDegrees = 360 - greenDegrees;
 
-      landingAngle =
-        greenDegrees +
-        2 +
-        Math.random() * Math.max(grayDegrees - 4, 1);
+      if (grayDegrees <= 4) {
+        landingAngle = greenDegrees + grayDegrees / 2;
+      } else {
+        landingAngle =
+          greenDegrees +
+          2 +
+          Math.random() * (grayDegrees - 4);
+      }
     }
 
-    // Pointer on ylhäällä = 270°
-    const targetRotation =
+    /*
+      Jos lähdekohta on landingAngle ja sen pitää päätyä
+      ylös (270°), tarvittava pyöritys on:
+
+      270 - landingAngle
+    */
+    const desiredRotation =
       270 - landingAngle;
 
-    const currentNormalized =
+    const currentAngle =
       ((rotation % 360) + 360) % 360;
 
-    const targetNormalized =
-      ((targetRotation % 360) + 360) % 360;
+    const desiredAngle =
+      ((desiredRotation % 360) + 360) % 360;
 
-    let extraRotation =
-      targetNormalized - currentNormalized;
+    let additionalRotation =
+      desiredAngle - currentAngle;
 
-    if (extraRotation < 0) {
-      extraRotation += 360;
+    if (additionalRotation < 0) {
+      additionalRotation += 360;
     }
 
+    // 5 täyttä kierrosta + tarkka lopetuskohta
     const finalRotation =
-      rotation + 1800 + extraRotation;
+      rotation + 1800 + additionalRotation;
 
     setRotation(finalRotation);
 
@@ -115,7 +133,10 @@ export default function UpgraderPage() {
           </Link>
 
           <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-2">
-            <span className="mr-2 text-sm text-gray-400">BALANCE</span>
+            <span className="mr-2 text-sm text-gray-400">
+              BALANCE
+            </span>
+
             <span className="font-black text-emerald-400">
               {balance.toLocaleString()} E
             </span>
