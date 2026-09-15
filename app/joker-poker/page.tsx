@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { useState } from "react";
 import { useEmeralds } from "../context/EmeraldContext";
 
 type Suit = "♠" | "♥" | "♦" | "♣";
@@ -10,9 +10,13 @@ type Card = {
   rank: string;
   suit: Suit;
   value: number;
+  joker?: boolean;
 };
 
+const suits: Suit[] = ["♠", "♥", "♦", "♣"];
+
 const ranks = [
+  { rank: "A", value: 14 },
   { rank: "2", value: 2 },
   { rank: "3", value: 3 },
   { rank: "4", value: 4 },
@@ -25,10 +29,7 @@ const ranks = [
   { rank: "J", value: 11 },
   { rank: "Q", value: 12 },
   { rank: "K", value: 13 },
-  { rank: "A", value: 14 },
 ];
-
-const suits: Suit[] = ["♠", "♥", "♦", "♣"];
 
 const betOptions = [25, 50, 100, 250, 500];
 
@@ -41,31 +42,46 @@ const payouts: Record<string, number> = {
   Straight: 4,
   "Three of a Kind": 3,
   "Two Pair": 2,
-  Pair: 1,
+  "Jacks or Better": 1,
 };
 
+const handOrder = [
+  "No Hand",
+  "Jacks or Better",
+  "Two Pair",
+  "Three of a Kind",
+  "Straight",
+  "Flush",
+  "Full House",
+  "Four of a Kind",
+  "Straight Flush",
+  "Royal Flush",
+];
+
 function createDeck(): Card[] {
-  return suits.flatMap((suit) =>
-    ranks.map((item) => ({
-      rank: item.rank,
-      suit,
-      value: item.value,
-    }))
-  );
-}
+  const deck: Card[] = [];
 
-function shuffle(deck: Card[]): Card[] {
-  const copy = [...deck];
-
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
+  for (const suit of suits) {
+    for (const item of ranks) {
+      deck.push({
+        rank: item.rank,
+        suit,
+        value: item.value,
+      });
+    }
   }
 
-  return copy;
+  deck.push({
+    rank: "JOKER",
+    suit: "♠",
+    value: 0,
+    joker: true,
+  });
+
+  return deck.sort(() => Math.random() - 0.5);
 }
 
-function evaluateHand(cards: Card[]): string {
+function evaluateNormalHand(cards: Card[]): string {
   if (cards.length !== 5) {
     return "No Hand";
   }
@@ -99,7 +115,6 @@ function evaluateHand(cards: Card[]): string {
     straight = true;
   }
 
-  // A-2-3-4-5
   if (
     uniqueValues.length === 5 &&
     uniqueValues.join(",") === "2,3,4,5,14"
@@ -118,7 +133,10 @@ function evaluateHand(cards: Card[]): string {
     return "Four of a Kind";
   }
 
-  if (frequencies[0] === 3 && frequencies[1] === 2) {
+  if (
+    frequencies[0] === 3 &&
+    frequencies[1] === 2
+  ) {
     return "Full House";
   }
 
@@ -134,20 +152,157 @@ function evaluateHand(cards: Card[]): string {
     return "Three of a Kind";
   }
 
-  if (frequencies[0] === 2 && frequencies[1] === 2) {
+  if (
+    frequencies[0] === 2 &&
+    frequencies[1] === 2
+  ) {
     return "Two Pair";
   }
 
   if (frequencies[0] === 2) {
-    return "Pair";
+    const pairValue = Array.from(
+      counts.entries()
+    ).find(([, count]) => count === 2)?.[0];
+
+    if (
+      pairValue !== undefined &&
+      pairValue >= 11
+    ) {
+      return "Jacks or Better";
+    }
   }
 
   return "No Hand";
 }
 
+function evaluateHand(cards: Card[]): string {
+  if (cards.length !== 5) {
+    return "No Hand";
+  }
+
+  const joker = cards.find((card) => card.joker);
+
+  if (!joker) {
+    return evaluateNormalHand(cards);
+  }
+
+  const normalCards = cards.filter(
+    (card) => !card.joker
+  );
+
+  let bestHand = "No Hand";
+  let bestScore = 0;
+
+  const replacementDeck = createDeck().filter(
+    (card) => !card.joker
+  );
+
+  for (const replacement of replacementDeck) {
+    const testHand = evaluateNormalHand([
+      ...normalCards,
+      replacement,
+    ]);
+
+    const score = handOrder.indexOf(testHand);
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestHand = testHand;
+    }
+  }
+
+  return bestHand;
+}
+
+function PlayingCard({
+  card,
+  held,
+  onClick,
+}: {
+  card: Card;
+  held: boolean;
+  onClick: () => void;
+}) {
+  if (card.joker) {
+    return (
+      <button
+        onClick={onClick}
+        className={`relative h-36 w-24 overflow-visible rounded-2xl border-2 bg-gradient-to-br from-[#0c3b27] via-[#06170f] to-[#0c3b27] p-3 text-left shadow-[0_15px_35px_rgba(0,0,0,0.45)] transition sm:h-44 sm:w-30 ${
+          held
+            ? "-translate-y-3 border-emerald-400"
+            : "border-emerald-500/50"
+        }`}
+      >
+        <div className="absolute left-3 top-3 text-xl font-black text-emerald-400">
+          🃏
+        </div>
+
+        <div className="absolute inset-0 flex items-center justify-center text-5xl">
+          🃏
+        </div>
+
+        <div className="absolute bottom-3 right-3 rotate-180 text-xl font-black text-emerald-400">
+          🃏
+        </div>
+
+        {held && (
+          <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-emerald-500 px-3 py-1 text-xs font-black text-black">
+            HOLD
+          </div>
+        )}
+      </button>
+    );
+  }
+
+  const red =
+    card.suit === "♥" || card.suit === "♦";
+
+  return (
+    <button
+      onClick={onClick}
+      className={`relative h-36 w-24 overflow-visible rounded-2xl border border-gray-300 bg-white p-3 text-left shadow-[0_15px_35px_rgba(0,0,0,0.45)] transition sm:h-44 sm:w-30 ${
+        held ? "-translate-y-3 border-emerald-400 border-2" : ""
+      } ${red ? "text-red-500" : "text-gray-900"}`}
+    >
+      <div className="absolute left-3 top-3 text-center leading-none">
+        <div className="text-xl font-black">
+          {card.rank}
+        </div>
+
+        <div className="mt-1 text-lg font-bold">
+          {card.suit}
+        </div>
+      </div>
+
+      <div className="absolute inset-0 flex items-center justify-center text-5xl">
+        {card.suit}
+      </div>
+
+      <div className="absolute bottom-3 right-3 text-center leading-none">
+        <div className="text-xl font-black">
+          {card.rank}
+        </div>
+
+        <div className="mt-1 text-lg font-bold">
+          {card.suit}
+        </div>
+      </div>
+
+      {held && (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-emerald-500 px-3 py-1 text-xs font-black text-black">
+          HOLD
+        </div>
+      )}
+    </button>
+  );
+}
+
 export default function JokerPokerPage() {
-  const { balance, removeEmeralds, addEmeralds } =
-    useEmeralds();
+  const {
+    balance,
+    addEmeralds,
+    removeEmeralds,
+  } = useEmeralds();
 
   const [cards, setCards] = useState<Card[]>([]);
 
@@ -159,22 +314,65 @@ export default function JokerPokerPage() {
     false,
   ]);
 
-  const [bet, setBet] = useState(25);
+  const [bet, setBet] = useState(100);
   const [playing, setPlaying] = useState(false);
-  const [result, setResult] = useState<string | null>(null);
+  const [result, setResult] = useState("");
   const [winAmount, setWinAmount] = useState(0);
+
+  function setBetAmount(amount: number) {
+    if (playing) return;
+
+    if (balance <= 0) {
+      setBet(0);
+      return;
+    }
+
+    setBet(Math.min(amount, balance));
+  }
+
+  function halfBet() {
+    if (playing || balance <= 0) return;
+
+    setBet(Math.max(1, Math.floor(balance / 2)));
+  }
+
+  function maxBet() {
+    if (playing || balance <= 0) return;
+
+    setBet(balance);
+  }
 
   function deal() {
     if (playing) return;
-    if (balance < bet) return;
 
-    if (!removeEmeralds(bet)) return;
+    if (bet <= 0) {
+      setResult("Choose a valid bet.");
+      return;
+    }
 
-    const deck = shuffle(createDeck());
+    if (bet > balance) {
+      setResult("Not enough Emeralds.");
+      return;
+    }
 
-    setCards(deck.slice(0, 5));
-    setHeld([false, false, false, false, false]);
-    setResult(null);
+    if (!removeEmeralds(bet)) {
+      setResult("Not enough Emeralds.");
+      return;
+    }
+
+    const newDeck = createDeck();
+
+    setCards(newDeck.slice(0, 5));
+
+    setHeld([
+      false,
+      false,
+      false,
+      false,
+      false,
+    ]);
+
+    setResult("");
     setWinAmount(0);
     setPlaying(true);
   }
@@ -192,14 +390,24 @@ export default function JokerPokerPage() {
   function draw() {
     if (!playing || cards.length !== 5) return;
 
-    const deck = shuffle(createDeck());
+    const currentDeck = createDeck();
 
-    const used = new Set(
-      cards.map((card) => `${card.rank}${card.suit}`)
+    const usedCards = new Set(
+      cards.map((card) =>
+        card.joker
+          ? "JOKER"
+          : `${card.rank}${card.suit}`
+      )
     );
 
-    const replacementCards = deck.filter(
-      (card) => !used.has(`${card.rank}${card.suit}`)
+    const availableCards = currentDeck.filter(
+      (card) => {
+        const id = card.joker
+          ? "JOKER"
+          : `${card.rank}${card.suit}`;
+
+        return !usedCards.has(id);
+      }
     );
 
     let replacementIndex = 0;
@@ -210,20 +418,19 @@ export default function JokerPokerPage() {
       }
 
       const replacement =
-        replacementCards[replacementIndex];
+        availableCards[replacementIndex];
 
       replacementIndex++;
 
       return replacement;
     });
 
-    setCards(newCards);
-    setPlaying(false);
-
     const hand = evaluateHand(newCards);
     const multiplier = payouts[hand] || 0;
     const winnings = bet * multiplier;
 
+    setCards(newCards);
+    setPlaying(false);
     setResult(hand);
     setWinAmount(winnings);
 
@@ -232,214 +439,304 @@ export default function JokerPokerPage() {
     }
   }
 
-  function resetGame() {
+  function newGame() {
     setCards([]);
-    setHeld([false, false, false, false, false]);
+
+    setHeld([
+      false,
+      false,
+      false,
+      false,
+      false,
+    ]);
+
     setPlaying(false);
-    setResult(null);
+    setResult("");
     setWinAmount(0);
   }
 
   return (
-    <main className="min-h-screen bg-[#050807] text-white">
-      <header className="border-b border-white/10 bg-black/30">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+    <main className="min-h-screen bg-[#050b08] text-white">
+      <header className="border-b border-emerald-900/40 bg-[#08120d]">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5">
           <Link
             href="/"
-            className="text-xl font-black tracking-wide"
+            className="text-2xl font-black tracking-wide text-emerald-400"
           >
             💎 EMERALD
-            <span className="ml-2 text-xs font-bold text-emerald-400">
-              DEMO CASINO
-            </span>
           </Link>
 
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-2">
-            <span className="mr-2 text-sm text-gray-400">
-              BALANCE
-            </span>
+          <nav className="hidden items-center gap-7 text-sm text-gray-500 md:flex">
+            <Link
+              href="/"
+              className="hover:text-white"
+            >
+              Home
+            </Link>
 
-            <span className="font-black text-emerald-400">
-              {balance.toLocaleString()} E
-            </span>
+            <Link
+              href="/joker-poker"
+              className="font-bold text-white"
+            >
+              Joker Poker
+            </Link>
+
+            <Link
+              href="/blackjack"
+              className="hover:text-white"
+            >
+              Blackjack
+            </Link>
+          </nav>
+
+          <div className="rounded-xl border border-emerald-800/50 bg-[#0c1a13] px-4 py-2">
+            <div className="text-xs text-gray-500">
+              BALANCE
+            </div>
+
+            <div className="font-black text-emerald-400">
+              💎 {balance.toLocaleString("en-US")}
+            </div>
           </div>
         </div>
       </header>
 
-      <section className="mx-auto max-w-6xl px-6 py-12">
-        <div className="mb-10 text-center">
-          <h1 className="text-4xl font-black tracking-tight">
-            JOKER POKER
+      <section className="mx-auto max-w-7xl px-5 py-8 md:py-12">
+        <div className="mb-8 text-center">
+          <div className="text-xs font-bold uppercase tracking-[0.35em] text-emerald-500">
+            Emerald Casino
+          </div>
+
+          <h1 className="mt-2 text-4xl font-black md:text-6xl">
+            Joker Poker
           </h1>
 
-          <p className="mt-2 text-gray-500">
-            Hold your cards and draw
+          <p className="mt-3 text-gray-500">
+            Hold your cards. Joker is wild.
           </p>
         </div>
 
-        <div className="mx-auto max-w-5xl">
-          <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-6 md:p-10">
-            <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <div className="text-xs font-bold uppercase tracking-widest text-gray-500">
-                  Current Bet
-                </div>
+        <div className="overflow-hidden rounded-[32px] border border-emerald-900/50 bg-[#07130d] shadow-2xl">
+          <div className="relative min-h-[620px] overflow-hidden bg-[radial-gradient(circle_at_center,#174b31_0%,#0b291a_42%,#06100a_100%)] px-4 py-10 md:px-10">
 
-                <div className="mt-1 text-2xl font-black text-emerald-400">
-                  {bet.toLocaleString()} E
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {betOptions.map((amount) => (
-                  <button
-                    key={amount}
-                    disabled={playing || balance < amount}
-                    onClick={() => setBet(amount)}
-                    className={`rounded-xl border px-4 py-2 text-sm font-bold transition ${
-                      bet === amount
-                        ? "border-emerald-500 bg-emerald-500/10 text-emerald-400"
-                        : "border-white/10 bg-white/[0.02] text-gray-300 hover:bg-white/[0.05]"
-                    } disabled:cursor-not-allowed disabled:opacity-30`}
-                  >
-                    {amount}
-                  </button>
-                ))}
-              </div>
+            <div className="absolute left-1/2 top-5 -translate-x-1/2 rounded-full border border-emerald-500/20 bg-black/20 px-5 py-2 text-[10px] font-bold uppercase tracking-[0.3em] text-emerald-500">
+              Emerald Joker Poker
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5 sm:gap-4">
-              {cards.length === 5
-                ? cards.map((card, index) => {
-                    const red =
-                      card.suit === "♥" ||
-                      card.suit === "♦";
+            <div className="pt-10 text-center">
+              <div className="mb-5 flex items-center justify-center gap-3">
+                <span className="text-xs font-bold uppercase tracking-widest text-gray-500">
+                  Your Hand
+                </span>
 
-                    return (
-                      <button
-                        key={`${card.rank}-${card.suit}-${index}`}
-                        onClick={() => toggleHold(index)}
-                        className={`relative aspect-[2/3] rounded-2xl border-2 bg-white p-3 text-left shadow-xl transition ${
-                          held[index]
-                            ? "border-emerald-400 -translate-y-3"
-                            : "border-white/20"
-                        }`}
-                      >
-                        <div
-                          className={`text-2xl font-black ${
-                            red
-                              ? "text-red-500"
-                              : "text-black"
-                          }`}
-                        >
-                          {card.rank}
-                        </div>
+                {cards.length > 0 && (
+                  <span className="rounded-full bg-black/20 px-3 py-1 text-sm font-black text-emerald-400">
+                    {playing
+                      ? "HOLD"
+                      : result || ""}
+                  </span>
+                )}
+              </div>
 
-                        <div
-                          className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl ${
-                            red
-                              ? "text-red-500"
-                              : "text-black"
-                          }`}
-                        >
-                          {card.suit}
-                        </div>
-
-                        <div
-                          className={`absolute bottom-3 right-3 rotate-180 text-2xl font-black ${
-                            red
-                              ? "text-red-500"
-                              : "text-black"
-                          }`}
-                        >
-                          {card.rank}
-                        </div>
-
-                        {held[index] && (
-                          <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-emerald-500 px-3 py-1 text-xs font-black text-black">
-                            HOLD
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })
-                : Array.from({ length: 5 }).map((_, index) => (
-                    <div
-                      key={index}
-                      className="aspect-[2/3] rounded-2xl border-2 border-dashed border-white/10 bg-black/20"
+              <div className="flex min-h-[185px] flex-wrap justify-center gap-3">
+                {cards.length === 0 ? (
+                  <div className="flex items-center text-sm text-gray-700">
+                    Choose your bet below
+                  </div>
+                ) : (
+                  cards.map((card, index) => (
+                    <PlayingCard
+                      key={`${card.rank}${card.suit}${index}`}
+                      card={card}
+                      held={held[index]}
+                      onClick={() =>
+                        toggleHold(index)
+                      }
                     />
-                  ))}
+                  ))
+                )}
+              </div>
             </div>
 
-            <div className="mt-10 text-center">
-              {!playing && !result && (
-                <button
-                  onClick={deal}
-                  disabled={balance < bet}
-                  className="rounded-2xl bg-emerald-500 px-12 py-4 font-black text-black transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  DEAL
-                </button>
-              )}
+            <div className="mx-auto my-9 flex max-w-2xl items-center gap-4">
+              <div className="h-px flex-1 bg-emerald-400/10" />
 
-              {playing && (
-                <button
-                  onClick={draw}
-                  className="rounded-2xl bg-emerald-500 px-12 py-4 font-black text-black transition hover:bg-emerald-400"
-                >
-                  DRAW
-                </button>
-              )}
+              <div className="rounded-full border border-emerald-500/10 px-4 py-2 text-xs font-bold text-emerald-500/50">
+                🃏
+              </div>
+
+              <div className="h-px flex-1 bg-emerald-400/10" />
+            </div>
+
+            <div className="text-center">
+              <div className="text-xs font-bold uppercase tracking-widest text-gray-500">
+                {playing
+                  ? "Choose cards to hold"
+                  : result
+                    ? result
+                    : "Joker is wild"}
+              </div>
 
               {result && (
-                <div>
-                  <div className="text-3xl font-black text-emerald-400">
-                    {result}
-                  </div>
-
+                <div className="mt-3">
                   {winAmount > 0 ? (
-                    <div className="mt-2 text-lg font-bold text-white">
-                      +{winAmount.toLocaleString()} E
+                    <div className="text-xl font-black text-emerald-400">
+                      +💎{" "}
+                      {winAmount.toLocaleString(
+                        "en-US"
+                      )}
                     </div>
                   ) : (
-                    <div className="mt-2 text-gray-500">
+                    <div className="text-sm text-gray-600">
                       No payout
                     </div>
                   )}
-
-                  <button
-                    onClick={resetGame}
-                    className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] px-10 py-3 font-black transition hover:bg-white/[0.08]"
-                  >
-                    NEW GAME
-                  </button>
                 </div>
               )}
             </div>
           </div>
 
-          <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.02] p-6">
-            <h2 className="mb-4 text-lg font-black">
-              PAYTABLE
-            </h2>
+          <div className="border-t border-emerald-900/40 bg-[#08120d] p-6 md:p-10">
+            <div className="mx-auto max-w-4xl">
 
-            <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-3">
-              {Object.entries(payouts).map(
-                ([hand, multiplier]) => (
-                  <div
-                    key={hand}
-                    className="flex justify-between rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3"
-                  >
-                    <span className="text-gray-400">
-                      {hand}
-                    </span>
+              <div className="mb-7 text-center">
+                <div className="text-sm text-gray-500">
+                  {playing
+                    ? "Hold the cards you want to keep."
+                    : result
+                      ? result
+                      : "Choose your bet to start."}
+                </div>
 
-                    <span className="font-black text-emerald-400">
-                      {multiplier}x
-                    </span>
+                {bet > 0 && (
+                  <div className="mt-2 text-xs text-gray-700">
+                    Current bet: 💎{" "}
+                    {bet.toLocaleString("en-US")}
                   </div>
-                )
+                )}
+              </div>
+
+              {!playing && !result && (
+                <div className="mx-auto max-w-xl">
+                  <div className="mb-3 text-center text-xs font-bold uppercase tracking-widest text-gray-500">
+                    Choose Bet
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                    {betOptions.map((amount) => {
+                      const selected =
+                        bet === amount;
+
+                      const disabled =
+                        amount > balance;
+
+                      return (
+                        <button
+                          key={amount}
+                          onClick={() =>
+                            setBetAmount(amount)
+                          }
+                          disabled={disabled}
+                          className={`rounded-xl border px-3 py-3 text-sm font-black transition ${
+                            selected
+                              ? "border-emerald-500 bg-emerald-500 text-black"
+                              : "border-gray-800 bg-[#050b08] text-gray-400 hover:border-emerald-700 hover:text-white"
+                          } ${
+                            disabled
+                              ? "cursor-not-allowed opacity-25"
+                              : ""
+                          }`}
+                        >
+                          💎 {amount}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <button
+                      onClick={halfBet}
+                      disabled={balance <= 0}
+                      className="rounded-xl border border-gray-800 bg-[#050b08] py-3 text-sm font-black text-gray-400 transition hover:border-gray-600 hover:text-white disabled:opacity-30"
+                    >
+                      ½ BALANCE
+                    </button>
+
+                    <button
+                      onClick={maxBet}
+                      disabled={balance <= 0}
+                      className="rounded-xl border border-gray-800 bg-[#050b08] py-3 text-sm font-black text-gray-400 transition hover:border-gray-600 hover:text-white disabled:opacity-30"
+                    >
+                      MAX
+                    </button>
+                  </div>
+
+                  <div className="mt-5 rounded-2xl border border-gray-800 bg-[#050b08] p-5 text-center">
+                    <div className="text-xs uppercase tracking-widest text-gray-600">
+                      Selected Bet
+                    </div>
+
+                    <div className="mt-1 text-3xl font-black text-emerald-400">
+                      💎{" "}
+                      {bet.toLocaleString("en-US")}
+                    </div>
+                  </div>
+                </div>
               )}
+
+              <div className="mt-8 flex justify-center">
+                {result ? (
+                  <button
+                    onClick={newGame}
+                    className="rounded-2xl bg-emerald-500 px-14 py-4 font-black text-black transition hover:bg-emerald-400"
+                  >
+                    NEW GAME
+                  </button>
+                ) : !playing ? (
+                  <button
+                    onClick={deal}
+                    disabled={
+                      balance <= 0 ||
+                      bet <= 0 ||
+                      bet > balance
+                    }
+                    className="rounded-2xl bg-emerald-500 px-14 py-4 font-black text-black transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    DEAL
+                  </button>
+                ) : (
+                  <button
+                    onClick={draw}
+                    className="rounded-2xl bg-emerald-500 px-14 py-4 font-black text-black transition hover:bg-emerald-400"
+                  >
+                    DRAW
+                  </button>
+                )}
+              </div>
+
+              <div className="mx-auto mt-9 grid max-w-3xl grid-cols-2 gap-3 text-center md:grid-cols-3">
+                {Object.entries(payouts).map(
+                  ([hand, multiplier]) => (
+                    <div
+                      key={hand}
+                      className="rounded-xl border border-gray-900 bg-[#060d09] p-4"
+                    >
+                      <div className="font-bold text-gray-400">
+                        {hand}
+                      </div>
+
+                      <div className="mt-1 text-xs font-black text-emerald-500">
+                        {multiplier}×
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
+
+              <div className="mt-6 text-center text-xs text-gray-600">
+                🃏 Joker is wild and can substitute for
+                any card.
+              </div>
             </div>
           </div>
         </div>
