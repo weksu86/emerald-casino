@@ -31,8 +31,6 @@ const ranks = [
   { rank: "A", value: 14 },
 ];
 
-const bets = [25, 50, 100, 250, 500];
-
 const payouts: Record<string, number> = {
   "Royal Flush": 100,
   "Straight Flush": 50,
@@ -65,7 +63,7 @@ function makeDeck(): Card[] {
     for (const item of ranks) {
       deck.push({
         rank: item.rank,
-        suit: suit,
+        suit,
         value: item.value,
       });
     }
@@ -202,7 +200,7 @@ function evaluate(cards: Card[]): string {
     for (const rank of ranks) {
       const testCard: Card = {
         rank: rank.rank,
-        suit: suit,
+        suit,
         value: rank.value,
       };
 
@@ -232,22 +230,10 @@ function PlayingCard({
   held: boolean;
   onHold: () => void;
 }) {
-  let cardClass =
-    "relative h-32 w-[78px] rounded-xl border-2 bg-white shadow-xl sm:h-40 sm:w-[96px]";
-
-  if (held) {
-    cardClass =
-      "relative h-32 w-[78px] -translate-y-2 rounded-xl border-2 border-[#F5C542] bg-white shadow-xl sm:h-40 sm:w-[96px]";
-  }
-
   if (card.joker) {
-    let jokerClass =
-      "relative h-32 w-[78px] rounded-xl border-2 border-[#6C2BD9] bg-[#17121f] shadow-xl sm:h-40 sm:w-[96px]";
-
-    if (held) {
-      jokerClass =
-        "relative h-32 w-[78px] -translate-y-2 rounded-xl border-2 border-[#F5C542] bg-[#17121f] shadow-xl sm:h-40 sm:w-[96px]";
-    }
+    const jokerClass = held
+      ? "relative h-32 w-[78px] -translate-y-2 rounded-xl border-2 border-[#F5C542] bg-[#17121f] shadow-xl sm:h-40 sm:w-[96px]"
+      : "relative h-32 w-[78px] rounded-xl border-2 border-[#6C2BD9] bg-[#17121f] shadow-xl sm:h-40 sm:w-[96px]";
 
     return (
       <button
@@ -260,10 +246,6 @@ function PlayingCard({
         </div>
 
         <div className="flex h-full items-center justify-center text-4xl">
-          🃏
-        </div>
-
-        <div className="absolute bottom-2 right-2 rotate-180 text-[#F5C542]">
           🃏
         </div>
 
@@ -282,6 +264,10 @@ function PlayingCard({
   const textClass = red
     ? "text-red-500"
     : "text-black";
+
+  const cardClass = held
+    ? "relative h-32 w-[78px] -translate-y-2 rounded-xl border-2 border-[#F5C542] bg-white shadow-xl sm:h-40 sm:w-[96px]"
+    : "relative h-32 w-[78px] rounded-xl border-2 border-white bg-white shadow-xl sm:h-40 sm:w-[96px]";
 
   return (
     <button
@@ -308,16 +294,6 @@ function PlayingCard({
         {card.suit}
       </div>
 
-      <div
-        className={
-          "absolute bottom-2 right-2 rotate-180 text-right text-lg font-black " +
-          textClass
-        }
-      >
-        <div>{card.rank}</div>
-        <div>{card.suit}</div>
-      </div>
-
       {held && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#F5C542] px-2 py-1 text-[9px] font-black text-black">
           HOLD
@@ -335,6 +311,7 @@ export default function JokerPokerPage() {
   } = useEmeralds();
 
   const [cards, setCards] = useState<Card[]>([]);
+
   const [held, setHeld] = useState<boolean[]>([
     false,
     false,
@@ -348,24 +325,12 @@ export default function JokerPokerPage() {
   const [result, setResult] = useState("");
   const [win, setWin] = useState(0);
 
-  function selectBet(amount: number) {
-    if (playing) {
-      return;
-    }
-
-    if (amount > balance) {
-      return;
-    }
-
-    setBet(amount);
-  }
-
   function deal() {
     if (playing) {
       return;
     }
 
-    if (balance < bet) {
+    if (balance < bet || bet <= 0) {
       setResult("Not enough Emeralds");
       return;
     }
@@ -494,7 +459,10 @@ export default function JokerPokerPage() {
           </Link>
 
           <nav className="hidden gap-6 text-sm text-gray-500 md:flex">
-            <Link href="/" className="hover:text-white">
+            <Link
+              href="/"
+              className="hover:text-white"
+            >
               Home
             </Link>
 
@@ -541,12 +509,11 @@ export default function JokerPokerPage() {
         </div>
 
         <div className="overflow-hidden rounded-3xl border border-[#6C2BD9]/40 bg-[#111116]">
-
           <div className="bg-[radial-gradient(circle_at_center,#29134f,#170d29,#0B0B0F)] px-3 py-6 md:px-8">
-            <div className="flex min-h-[170px] items-center justify-center gap-2 sm:gap-3">
+            <div className="flex min-h-[170px] items-center justify-center gap-2 overflow-hidden sm:gap-3">
               {cards.length === 0 ? (
                 <div className="text-sm text-gray-600">
-                  Choose a bet and press DEAL
+                  Set your bet and press DEAL
                 </div>
               ) : (
                 cards.map((card, index) => (
@@ -594,86 +561,58 @@ export default function JokerPokerPage() {
           <div className="border-t border-[#6C2BD9]/30 bg-[#0B0B0F] p-4">
             <div className="mx-auto max-w-5xl">
 
-              <div className="mb-3 text-center text-[9px] font-bold uppercase tracking-widest text-gray-600">
+              <div className="mb-2 text-center text-[9px] font-bold uppercase tracking-widest text-gray-600">
                 BET
               </div>
 
-              <div className="grid grid-cols-5 gap-2">
-                {bets.map((amount) => (
-                  <button
-                    key={amount}
-                    type="button"
-                    disabled={
-                      playing ||
-                      amount > balance
-                    }
-                    onClick={() =>
-                      selectBet(amount)
-                    }
-                    className={
-                      bet === amount
-                        ? "rounded-lg bg-[#F5C542] py-2 text-xs font-black text-black"
-                        : "rounded-lg border border-[#27232F] bg-[#15131D] py-2 text-xs font-black text-gray-400 hover:border-[#6C2BD9] hover:text-white disabled:opacity-30"
-                    }
-                  >
-                    💎 {amount}
-                  </button>
-                ))}
-              </div>
+              {/* BET SLIDER */}
+              <div className="flex items-center gap-3">
+                <span className="w-8 text-left text-xs font-black text-gray-500">
+                  0
+                </span>
 
-              <div className="mt-2 flex gap-2">
-                <button
-                  type="button"
+                <input
+                  type="range"
+                  min="0"
+                  max={Math.max(balance, 1)}
+                  step="1"
+                  value={bet}
                   disabled={
                     playing || balance <= 0
                   }
-                  onClick={() =>
+                  onChange={(event) =>
                     setBet(
-                      Math.max(
-                        1,
-                        Math.floor(balance / 2)
-                      )
+                      Number(event.target.value)
                     )
                   }
-                  className="flex-1 rounded-lg border border-[#27232F] bg-[#15131D] py-2 text-[10px] font-black text-gray-500 hover:text-white disabled:opacity-30"
-                >
-                  HALF
-                </button>
+                  className="h-2 w-full cursor-pointer accent-[#F5C542]"
+                />
 
-                <button
-                  type="button"
-                  disabled={
-                    playing || balance <= 0
-                  }
-                  onClick={() =>
-                    setBet(balance)
-                  }
-                  className="flex-1 rounded-lg border border-[#27232F] bg-[#15131D] py-2 text-[10px] font-black text-gray-500 hover:text-white disabled:opacity-30"
-                >
-                  MAX
-                </button>
+                <span className="w-12 text-right text-xs font-black text-[#F5C542]">
+                  ALL IN
+                </span>
               </div>
 
-              <div className="mt-3 flex items-center justify-center gap-3">
-                <div className="rounded-xl border border-[#6C2BD9]/30 bg-[#15131D] px-5 py-2 text-center">
-                  <div className="text-[8px] text-gray-600">
-                    CURRENT BET
-                  </div>
-
-                  <div className="font-black text-[#F5C542]">
-                    💎 {bet.toLocaleString("en-US")}
-                  </div>
+              <div className="mt-3 text-center">
+                <div className="text-[8px] text-gray-600">
+                  CURRENT BET
                 </div>
 
+                <div className="text-2xl font-black text-[#F5C542]">
+                  💎 {bet.toLocaleString("en-US")}
+                </div>
+              </div>
+
+              <div className="mt-3 flex justify-center">
                 {!playing && !result && (
                   <button
                     type="button"
                     onClick={deal}
                     disabled={
-                      balance < bet ||
-                      bet <= 0
+                      bet <= 0 ||
+                      bet > balance
                     }
-                    className="rounded-xl bg-[#6C2BD9] px-10 py-3 text-sm font-black text-white hover:bg-[#7d3be8] disabled:opacity-30"
+                    className="rounded-xl bg-[#6C2BD9] px-12 py-3 text-sm font-black text-white hover:bg-[#7d3be8] disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     DEAL
                   </button>
@@ -683,7 +622,7 @@ export default function JokerPokerPage() {
                   <button
                     type="button"
                     onClick={draw}
-                    className="rounded-xl bg-[#F5C542] px-10 py-3 text-sm font-black text-black hover:bg-[#ffd45e]"
+                    className="rounded-xl bg-[#F5C542] px-12 py-3 text-sm font-black text-black hover:bg-[#ffd45e]"
                   >
                     DRAW
                   </button>
@@ -693,7 +632,7 @@ export default function JokerPokerPage() {
                   <button
                     type="button"
                     onClick={newGame}
-                    className="rounded-xl bg-[#6C2BD9] px-8 py-3 text-sm font-black text-white hover:bg-[#7d3be8]"
+                    className="rounded-xl bg-[#6C2BD9] px-10 py-3 text-sm font-black text-white hover:bg-[#7d3be8]"
                   >
                     NEW GAME
                   </button>
