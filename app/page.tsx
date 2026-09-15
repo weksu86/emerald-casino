@@ -80,11 +80,17 @@ export default function Home() {
 
           <div className="flex items-center gap-6">
             <nav className="hidden gap-6 text-sm text-gray-400 md:flex">
-              <Link href="/upgrader" className="hover:text-white">
-                Upgrader
+              <Link
+                href="/joker-poker"
+                className="hover:text-white"
+              >
+                Joker Poker
               </Link>
 
-              <Link href="/blackjack" className="hover:text-white">
+              <Link
+                href="/blackjack"
+                className="hover:text-white"
+              >
                 Blackjack
               </Link>
 
@@ -94,7 +100,10 @@ export default function Home() {
             </nav>
 
             <div className="rounded-xl border border-emerald-800/50 bg-[#0d1c15] px-4 py-2">
-              <span className="text-sm text-gray-400">Balance</span>
+              <span className="text-sm text-gray-400">
+                Balance
+              </span>
+
               <div className="font-bold text-emerald-400">
                 💎 {balance.toLocaleString("en-US")}
               </div>
@@ -110,20 +119,23 @@ export default function Home() {
 
         <h1 className="text-5xl font-black tracking-tight md:text-7xl">
           Welcome to{" "}
-          <span className="text-emerald-400">Emerald</span>
+          <span className="text-emerald-400">
+            Emerald
+          </span>
         </h1>
 
         <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-400">
-          A dark Emerald-themed CS2 casino demo. Try the games using
-          virtual Emeralds.
+          A dark Emerald-themed CS2 casino demo.
+          Play with virtual Emeralds and try the
+          available games.
         </p>
 
         <div className="mt-10 flex justify-center gap-4">
           <Link
-            href="/upgrader"
+            href="/joker-poker"
             className="rounded-xl bg-emerald-500 px-7 py-3 font-bold text-black transition hover:bg-emerald-400"
           >
-            Play Upgrader
+            Play Joker Poker
           </Link>
 
           <Link
@@ -137,21 +149,30 @@ export default function Home() {
 
       <section className="mx-auto max-w-6xl px-6 pb-20">
         <div className="mb-8">
-          <h2 className="text-3xl font-black">Games</h2>
+          <h2 className="text-3xl font-black">
+            Games
+          </h2>
+
           <p className="mt-2 text-gray-500">
-            Choose a game and play with your Emerald balance.
+            Choose a game and play with your Emerald
+            balance.
           </p>
         </div>
 
         <div className="grid gap-5 md:grid-cols-3">
           <Link
-            href="/upgrader"
+            href="/joker-poker"
             className="rounded-2xl border border-emerald-900/50 bg-[#0b1812] p-6 transition hover:border-emerald-500/60"
           >
-            <div className="text-4xl">🎯</div>
-            <h3 className="mt-4 text-xl font-bold">Upgrader</h3>
+            <div className="text-4xl">🃏</div>
+
+            <h3 className="mt-4 text-xl font-bold">
+              Joker Poker
+            </h3>
+
             <p className="mt-2 text-sm text-gray-500">
-              Risk your Emeralds and try to upgrade your skin value.
+              Hold your cards, draw new ones, and play
+              Joker Poker with virtual Emeralds.
             </p>
           </Link>
 
@@ -160,15 +181,24 @@ export default function Home() {
             className="rounded-2xl border border-emerald-900/50 bg-[#0b1812] p-6 transition hover:border-emerald-500/60"
           >
             <div className="text-4xl">🃏</div>
-            <h3 className="mt-4 text-xl font-bold">Blackjack</h3>
+
+            <h3 className="mt-4 text-xl font-bold">
+              Blackjack
+            </h3>
+
             <p className="mt-2 text-sm text-gray-500">
-              Beat the dealer and increase your Emerald balance.
+              Beat the dealer and increase your Emerald
+              balance.
             </p>
           </Link>
 
           <div className="rounded-2xl border border-gray-800 bg-[#0b1812] p-6 opacity-50">
             <div className="text-4xl">♠️</div>
-            <h3 className="mt-4 text-xl font-bold">Poker</h3>
+
+            <h3 className="mt-4 text-xl font-bold">
+              Poker
+            </h3>
+
             <p className="mt-2 text-sm text-gray-500">
               Coming soon.
             </p>
@@ -178,9 +208,13 @@ export default function Home() {
 
       <section className="mx-auto max-w-6xl px-6 pb-24">
         <div className="mb-8">
-          <h2 className="text-3xl font-black">Demo Inventory</h2>
+          <h2 className="text-3xl font-black">
+            Demo Inventory
+          </h2>
+
           <p className="mt-2 text-gray-500">
-            Claim each demo skin once. 9% demo fee is applied.
+            Claim each demo skin once. 9% demo fee is
+            applied.
           </p>
         </div>
 
@@ -193,17 +227,22 @@ export default function Home() {
         {availableSkins.length === 0 ? (
           <div className="rounded-2xl border border-emerald-900/50 bg-[#0b1812] p-10 text-center">
             <div className="text-4xl">✅</div>
+
             <h3 className="mt-4 text-xl font-bold">
               All demo skins claimed
             </h3>
+
             <p className="mt-2 text-gray-500">
-              You have already claimed every available demo skin.
+              You have already claimed every available
+              demo skin.
             </p>
           </div>
         ) : (
           <div className="grid gap-5 md:grid-cols-3">
             {availableSkins.map((skin) => {
-              const received = Math.round(skin.value * 0.91);
+              const received = Math.round(
+                skin.value * 0.91
+              );
 
               return (
                 <div
@@ -215,30 +254,50 @@ export default function Home() {
                   </div>
 
                   <div className="mt-5">
-                    <h3 className="font-bold">{skin.name}</h3>
+                    <h3 className="font-bold">
+                      {skin.name}
+                    </h3>
 
                     <div className="mt-3 space-y-1 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Wear</span>
+                        <span className="text-gray-500">
+                          Wear
+                        </span>
+
                         <span>{skin.wear}</span>
                       </div>
 
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Rarity</span>
+                        <span className="text-gray-500">
+                          Rarity
+                        </span>
+
                         <span>{skin.rarity}</span>
                       </div>
 
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Value</span>
+                        <span className="text-gray-500">
+                          Value
+                        </span>
+
                         <span className="font-bold text-emerald-400">
-                          💎 {skin.value.toLocaleString("en-US")}
+                          💎{" "}
+                          {skin.value.toLocaleString(
+                            "en-US"
+                          )}
                         </span>
                       </div>
 
                       <div className="flex justify-between">
-                        <span className="text-gray-500">You receive</span>
+                        <span className="text-gray-500">
+                          You receive
+                        </span>
+
                         <span className="font-bold text-white">
-                          💎 {received.toLocaleString("en-US")}
+                          💎{" "}
+                          {received.toLocaleString(
+                            "en-US"
+                          )}
                         </span>
                       </div>
                     </div>
