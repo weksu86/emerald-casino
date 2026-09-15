@@ -1,372 +1,255 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
+import Link from "next/link";
 import { useEmeralds } from "../context/EmeraldContext";
 
-type Upgrade = {
-  id: number;
-  bet: number;
-  target: number;
-  label: string;
-  chance: number;
-  allIn?: boolean;
-};
-
-const upgrades: Upgrade[] = [
-  {
-    id: 1,
-    bet: 100,
-    target: 200,
-    label: "100 → 200",
-    chance: 50,
-  },
-  {
-    id: 2,
-    bet: 500,
-    target: 1000,
-    label: "500 → 1 000",
-    chance: 50,
-  },
-  {
-    id: 3,
-    bet: 1,
-    target: 1000,
-    label: "1 → 1 000",
-    chance: 1,
-  },
+const options = [
+  { id: 1, label: "100 → 200", cost: 100, reward: 200, chance: 50 },
+  { id: 2, label: "500 → 1 000", cost: 500, reward: 1000, chance: 50 },
+  { id: 3, label: "1 → 1 000", cost: 1, reward: 1000, chance: 1 },
 ];
 
 export default function UpgraderPage() {
-  const { balance, addEmeralds, removeEmeralds } = useEmeralds();
+  const { balance, removeEmeralds, addEmeralds } = useEmeralds();
 
-  const [selectedId, setSelectedId] = useState(1);
+  const [selected, setSelected] = useState(0);
   const [rotation, setRotation] = useState(0);
   const [spinning, setSpinning] = useState(false);
-  const [result, setResult] = useState("");
+  const [result, setResult] = useState<"win" | "lose" | null>(null);
 
-  const allInUpgrade: Upgrade = {
-    id: 4,
-    bet: balance,
-    target: balance * 3,
-    label: "ALL IN → 3×",
-    chance: 33,
-    allIn: true,
-  };
+  const currentOption =
+    selected < options.length
+      ? options[selected]
+      : {
+          id: 4,
+          label: `ALL IN → ${balance * 3}`,
+          cost: balance,
+          reward: balance * 3,
+          chance: 33,
+        };
 
-  const selectedUpgrade =
-    selectedId === 4
-      ? allInUpgrade
-      : upgrades.find((upgrade) => upgrade.id === selectedId) ??
-        upgrades[0];
+  function spin() {
+    if (spinning || currentOption.cost <= 0) return;
+    if (balance < currentOption.cost) return;
 
-  function selectUpgrade(id: number) {
-    if (spinning) return;
-
-    setSelectedId(id);
-    setResult("");
-  }
-
-  function play() {
-    const bet = selectedUpgrade.bet;
-    const target = selectedUpgrade.target;
-    const chance = selectedUpgrade.chance;
-
-    if (spinning || bet <= 0 || balance < bet) {
-      setResult("Not enough Emeralds.");
-      return;
-    }
-
-    const paid = removeEmeralds(bet);
-
-    if (!paid) {
-      setResult("Not enough Emeralds.");
-      return;
-    }
-
-    setSpinning(true);
-    setResult("");
+    const { chance, reward, cost } = currentOption;
 
     const won = Math.random() * 100 < chance;
 
-    setRotation(
-      (current) => current + 1800 + Math.random() * 360
-    );
+    if (!removeEmeralds(cost)) return;
+
+    setResult(null);
+    setSpinning(true);
+
+    const greenDegrees = chance * 3.6;
+
+    /*
+      conic-gradient alkaa oikealta (0°).
+      Osoitin on ylhäällä (270°).
+
+      Valitaan ensin kohta vihreästä tai harmaasta.
+      Sen jälkeen lasketaan pyörän lopullinen kulma niin,
+      että juuri valittu kohta osuu osoittimen alle.
+    */
+
+    let landingAngle: number;
+
+    if (won) {
+      // Vihreän alueen keskeltä, pienellä turvamarginaalilla
+      landingAngle =
+        2 + Math.random() * Math.max(greenDegrees - 4, 1);
+    } else {
+      // Harmaan alueen keskeltä
+      const grayDegrees = 360 - greenDegrees;
+
+      landingAngle =
+        greenDegrees +
+        2 +
+        Math.random() * Math.max(grayDegrees - 4, 1);
+    }
+
+    // Pointer on ylhäällä = 270°
+    const targetRotation =
+      270 - landingAngle;
+
+    const currentNormalized =
+      ((rotation % 360) + 360) % 360;
+
+    const targetNormalized =
+      ((targetRotation % 360) + 360) % 360;
+
+    let extraRotation =
+      targetNormalized - currentNormalized;
+
+    if (extraRotation < 0) {
+      extraRotation += 360;
+    }
+
+    const finalRotation =
+      rotation + 1800 + extraRotation;
+
+    setRotation(finalRotation);
 
     setTimeout(() => {
       if (won) {
-        addEmeralds(target);
-
-        setResult(
-          `WIN! +${target.toLocaleString("en-US")} Emeralds`
-        );
+        addEmeralds(reward);
+        setResult("win");
       } else {
-        setResult(
-          `LOSE! -${bet.toLocaleString("en-US")} Emeralds`
-        );
+        setResult("lose");
       }
 
       setSpinning(false);
-    }, 2500);
+    }, 3000);
   }
 
   return (
-    <main className="min-h-screen bg-[#07110d] text-white">
-      <header className="border-b border-emerald-900/40 bg-[#091610]">
+    <main className="min-h-screen bg-[#050807] text-white">
+      <header className="border-b border-white/10 bg-black/30">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-          <Link
-            href="/"
-            className="text-2xl font-black tracking-wide text-emerald-400"
-          >
+          <Link href="/" className="text-xl font-black tracking-wide">
             💎 EMERALD
+            <span className="ml-2 text-xs font-bold text-emerald-400">
+              DEMO CASINO
+            </span>
           </Link>
 
-          <div className="flex items-center gap-6">
-            <nav className="hidden gap-6 text-sm text-gray-400 md:flex">
-              <Link href="/" className="hover:text-white">
-                Home
-              </Link>
-
-              <Link
-                href="/upgrader"
-                className="text-white"
-              >
-                Upgrader
-              </Link>
-
-              <Link
-                href="/blackjack"
-                className="hover:text-white"
-              >
-                Blackjack
-              </Link>
-            </nav>
-
-            <div className="rounded-xl border border-emerald-800/50 bg-[#0d1c15] px-4 py-2">
-              <span className="text-sm text-gray-400">
-                Balance
-              </span>
-
-              <div className="font-bold text-emerald-400">
-                💎 {balance.toLocaleString("en-US")}
-              </div>
-            </div>
+          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-2">
+            <span className="mr-2 text-sm text-gray-400">BALANCE</span>
+            <span className="font-black text-emerald-400">
+              {balance.toLocaleString()} E
+            </span>
           </div>
         </div>
       </header>
 
-      <section className="mx-auto max-w-5xl px-6 py-14">
+      <section className="mx-auto max-w-5xl px-6 py-12">
         <div className="mb-10 text-center">
-          <div className="mb-3 text-sm font-bold uppercase tracking-[0.25em] text-emerald-500">
-            Emerald
-          </div>
-
-          <h1 className="text-5xl font-black">
-            Upgrader
+          <h1 className="text-4xl font-black tracking-tight">
+            UPGRADER
           </h1>
 
-          <p className="mt-3 text-gray-500">
-            Choose your upgrade.
+          <p className="mt-2 text-gray-500">
+            Upgrade your Emeralds
           </p>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
-          {/* WHEEL */}
-          <div className="rounded-3xl border border-emerald-900/50 bg-[#0b1812] p-8">
-            <div className="relative mx-auto flex h-[360px] w-[360px] items-center justify-center">
-              <div
-                className="absolute inset-0 rounded-full border-[18px] border-gray-700"
-                style={{
-                  transform: `rotate(${rotation}deg)`,
-                  transition: spinning
-                    ? "transform 2500ms cubic-bezier(0.15, 0.8, 0.2, 1)"
-                    : "none",
-                  background: `conic-gradient(
-                    #10b981 0deg ${
-                      selectedUpgrade.chance * 3.6
-                    }deg,
-                    #374151 ${
-                      selectedUpgrade.chance * 3.6
-                    }deg 360deg
-                  )`,
-                }}
-              >
-                <div className="absolute inset-5 rounded-full border-[12px] border-gray-600 bg-[#101b16]" />
-              </div>
-
-              {/* POINTER */}
-              <div className="absolute -top-4 left-1/2 z-20 -translate-x-1/2">
-                <div className="h-0 w-0 border-l-[14px] border-r-[14px] border-t-[28px] border-l-transparent border-r-transparent border-t-white" />
-              </div>
-
-              {/* CENTER */}
-              <div className="relative z-10 flex h-28 w-28 items-center justify-center rounded-full border-[10px] border-gray-700 bg-[#0b1812]">
-                <div className="text-center">
-                  <div className="text-xs uppercase tracking-widest text-gray-500">
-                    Chance
-                  </div>
-
-                  <div className="text-3xl font-black text-white">
-                    {selectedUpgrade.chance}%
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-8 text-center">
-              {result ? (
-                <div
-                  className={`text-2xl font-black ${
-                    result.startsWith("WIN")
-                      ? "text-emerald-400"
-                      : "text-red-400"
-                  }`}
-                >
-                  {result}
-                </div>
-              ) : (
-                <div className="text-gray-500">
-                  Choose an upgrade and spin the wheel.
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* CONTROLS */}
-          <div className="rounded-3xl border border-emerald-900/50 bg-[#0b1812] p-7">
-            <h2 className="text-2xl font-black">
-              Choose Upgrade
+        <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr]">
+          <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-6">
+            <h2 className="mb-5 text-lg font-bold">
+              Choose upgrade
             </h2>
 
-            <div className="mt-6 space-y-3">
-              {upgrades.map((upgrade) => {
-                const selected =
-                  selectedId === upgrade.id;
-
-                return (
-                  <button
-                    key={upgrade.id}
-                    onClick={() =>
-                      selectUpgrade(upgrade.id)
+            <div className="space-y-3">
+              {options.map((option, index) => (
+                <button
+                  key={option.id}
+                  onClick={() => {
+                    if (!spinning) {
+                      setSelected(index);
+                      setResult(null);
                     }
-                    disabled={spinning}
-                    className={`w-full rounded-2xl border p-5 text-left transition ${
-                      selected
-                        ? "border-emerald-500 bg-emerald-950/40"
-                        : "border-gray-800 bg-[#08110c] hover:border-gray-600"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-lg font-black">
-                        {upgrade.label}
-                      </span>
+                  }}
+                  className={`w-full rounded-2xl border p-4 text-left transition ${
+                    selected === index
+                      ? "border-emerald-500 bg-emerald-500/10"
+                      : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05]"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold">
+                      {option.label}
+                    </span>
 
-                      <span className="font-bold text-emerald-400">
-                        {upgrade.chance}%
-                      </span>
-                    </div>
+                    <span className="text-sm text-emerald-400">
+                      {option.chance}%
+                    </span>
+                  </div>
+                </button>
+              ))}
 
-                    <div className="mt-2 text-sm text-gray-500">
-                      Bet 💎{" "}
-                      {upgrade.bet.toLocaleString("en-US")}
-                      {" → "}
-                      💎{" "}
-                      {upgrade.target.toLocaleString(
-                        "en-US"
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-
-              {/* ALL IN */}
               <button
-                onClick={() => selectUpgrade(4)}
-                disabled={spinning || balance <= 0}
-                className={`w-full rounded-2xl border p-5 text-left transition ${
-                  selectedId === 4
-                    ? "border-emerald-500 bg-emerald-950/40"
-                    : "border-gray-800 bg-[#08110c] hover:border-gray-600"
+                onClick={() => {
+                  if (!spinning) {
+                    setSelected(options.length);
+                    setResult(null);
+                  }
+                }}
+                className={`w-full rounded-2xl border p-4 text-left transition ${
+                  selected === options.length
+                    ? "border-emerald-500 bg-emerald-500/10"
+                    : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05]"
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-lg font-black">
-                    ALL IN → 3×
+                  <span className="font-bold">
+                    ALL IN → {balance * 3}
                   </span>
 
-                  <span className="font-bold text-emerald-400">
+                  <span className="text-sm text-emerald-400">
                     33%
                   </span>
-                </div>
-
-                <div className="mt-2 text-sm text-gray-500">
-                  Bet 💎{" "}
-                  {balance.toLocaleString("en-US")}
-                  {" → "}
-                  💎{" "}
-                  {(balance * 3).toLocaleString(
-                    "en-US"
-                  )}
                 </div>
               </button>
             </div>
 
-            <div className="mt-6 rounded-2xl border border-gray-800 bg-[#08110c] p-5">
-              <div className="flex justify-between">
-                <span className="text-gray-500">
-                  Bet
-                </span>
-
-                <span className="font-bold">
-                  💎{" "}
-                  {selectedUpgrade.bet.toLocaleString(
-                    "en-US"
-                  )}
-                </span>
-              </div>
-
-              <div className="mt-3 flex justify-between">
-                <span className="text-gray-500">
-                  Target
-                </span>
-
-                <span className="font-bold">
-                  💎{" "}
-                  {selectedUpgrade.target.toLocaleString(
-                    "en-US"
-                  )}
-                </span>
-              </div>
-
-              <div className="mt-3 flex justify-between">
-                <span className="text-gray-500">
-                  Chance
-                </span>
-
-                <span className="font-bold text-emerald-400">
-                  {selectedUpgrade.chance}%
-                </span>
-              </div>
-            </div>
-
             <button
-              onClick={play}
+              onClick={spin}
               disabled={
                 spinning ||
-                balance <= 0 ||
-                balance < selectedUpgrade.bet
+                currentOption.cost <= 0 ||
+                balance < currentOption.cost
               }
-              className="mt-6 w-full rounded-xl bg-emerald-500 py-4 text-lg font-black text-black transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
+              className="mt-6 w-full rounded-2xl bg-emerald-500 px-6 py-4 font-black text-black transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {spinning ? "SPINNING..." : "UPGRADE"}
             </button>
 
-            {balance < selectedUpgrade.bet &&
-              balance > 0 && (
-                <p className="mt-3 text-center text-xs text-red-400">
-                  Not enough Emeralds for this bet.
-                </p>
-              )}
+            {result && !spinning && (
+              <div
+                className={`mt-5 text-center text-2xl font-black ${
+                  result === "win"
+                    ? "text-emerald-400"
+                    : "text-red-400"
+                }`}
+              >
+                {result === "win" ? "YOU WIN" : "YOU LOSE"}
+              </div>
+            )}
+          </div>
+
+          <div className="flex min-h-[500px] items-center justify-center">
+            <div className="relative">
+              <div className="absolute left-1/2 top-0 z-20 -translate-x-1/2 -translate-y-2">
+                <div className="h-0 w-0 border-l-[14px] border-r-[14px] border-t-[26px] border-l-transparent border-r-transparent border-t-white" />
+              </div>
+
+              <div
+                className="h-[390px] w-[390px] rounded-full border-[14px] border-gray-700"
+                style={{
+                  transform: `rotate(${rotation}deg)`,
+                  transition: spinning
+                    ? "transform 3s cubic-bezier(0.12, 0.8, 0.18, 1)"
+                    : "none",
+                  background: `conic-gradient(
+                    #10b981 0deg ${currentOption.chance * 3.6}deg,
+                    #374151 ${currentOption.chance * 3.6}deg 360deg
+                  )`,
+                }}
+              >
+                <div className="m-8 flex h-[306px] w-[306px] items-center justify-center rounded-full border-[10px] border-gray-700 bg-[#050807]">
+                  <div className="text-center">
+                    <div className="text-5xl font-black text-emerald-400">
+                      {currentOption.chance}%
+                    </div>
+
+                    <div className="mt-2 text-sm font-bold text-gray-500">
+                      WIN CHANCE
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
