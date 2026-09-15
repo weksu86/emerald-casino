@@ -32,10 +32,11 @@ const ranks = [
 ];
 
 const payouts: Record<string, number> = {
-  "Royal Flush": 100,
+  "Royal Flush": 200,
+  "Five of a Kind": 100,
   "Straight Flush": 50,
-  "Four of a Kind": 25,
-  "Full House": 9,
+  "Four of a Kind": 30,
+  "Full House": 10,
   Flush: 6,
   Straight: 4,
   "Three of a Kind": 3,
@@ -54,6 +55,7 @@ const handValues: Record<string, number> = {
   "Four of a Kind": 7,
   "Straight Flush": 8,
   "Royal Flush": 9,
+  "Five of a Kind": 10,
 };
 
 function makeDeck(): Card[] {
@@ -129,6 +131,10 @@ function normalHand(cards: Card[]): string {
 
   if (unique.join(",") === "2,3,4,5,14") {
     straight = true;
+  }
+
+  if (frequencies[0] === 5) {
+    return "Five of a Kind";
   }
 
   if (straight && flush) {
@@ -324,6 +330,8 @@ export default function JokerPokerPage() {
   const [playing, setPlaying] = useState(false);
   const [result, setResult] = useState("");
   const [win, setWin] = useState(0);
+  const [showWinAnimation, setShowWinAnimation] =
+    useState(false);
 
   function deal() {
     if (playing) {
@@ -357,6 +365,7 @@ export default function JokerPokerPage() {
     setPlaying(true);
     setResult("");
     setWin(0);
+    setShowWinAnimation(false);
   }
 
   function holdCard(index: number) {
@@ -428,6 +437,13 @@ export default function JokerPokerPage() {
 
     if (payout > 0) {
       addEmeralds(payout);
+      setShowWinAnimation(true);
+
+      setTimeout(() => {
+        setShowWinAnimation(false);
+      }, 2800);
+    } else {
+      setShowWinAnimation(false);
     }
   }
 
@@ -445,6 +461,22 @@ export default function JokerPokerPage() {
     setPlaying(false);
     setResult("");
     setWin(0);
+    setShowWinAnimation(false);
+  }
+
+  function handleBetInput(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const value = Number(
+      event.target.value.replace(/\D/g, "")
+    );
+
+    if (value > balance) {
+      setBet(balance);
+      return;
+    }
+
+    setBet(value);
   }
 
   return (
@@ -508,9 +540,27 @@ export default function JokerPokerPage() {
           </p>
         </div>
 
+        {showWinAnimation && win > 0 && (
+          <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center">
+            <div className="animate-bounce rounded-2xl border border-[#20C997]/50 bg-[#10251f] px-10 py-6 text-center shadow-[0_0_50px_rgba(32,201,151,0.35)]">
+              <div className="text-[12px] font-black uppercase tracking-[0.3em] text-[#20C997]">
+                WIN
+              </div>
+
+              <div className="mt-2 text-4xl font-black text-[#F5C542]">
+                +💎 {win.toLocaleString("en-US")}
+              </div>
+
+              <div className="mt-1 text-xs font-bold text-[#20C997]">
+                CONGRATULATIONS
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="overflow-hidden rounded-3xl border border-[#6C2BD9]/40 bg-[#111116]">
-          <div className="bg-[radial-gradient(circle_at_center,#29134f,#170d29,#0B0B0F)] px-3 py-6 md:px-8">
-            <div className="flex min-h-[170px] items-center justify-center gap-2 overflow-hidden sm:gap-3">
+          <div className="h-[360px] bg-[radial-gradient(circle_at_center,#29134f,#170d29,#0B0B0F)] px-3 py-10 md:px-8">
+            <div className="flex h-full items-center justify-center gap-2 sm:gap-3">
               {cards.length === 0 ? (
                 <div className="text-sm text-gray-600">
                   Set your bet and press DEAL
@@ -529,7 +579,7 @@ export default function JokerPokerPage() {
               )}
             </div>
 
-            <div className="mt-4 text-center">
+            <div className="text-center">
               {playing && (
                 <span className="text-xs font-bold text-gray-400">
                   Click cards to HOLD
@@ -547,12 +597,6 @@ export default function JokerPokerPage() {
                   >
                     {result}
                   </div>
-
-                  {win > 0 && (
-                    <div className="mt-1 font-bold text-[#20C997]">
-                      +💎 {win.toLocaleString("en-US")}
-                    </div>
-                  )}
                 </div>
               )}
             </div>
@@ -560,13 +604,26 @@ export default function JokerPokerPage() {
 
           <div className="border-t border-[#6C2BD9]/30 bg-[#0B0B0F] p-4">
             <div className="mx-auto max-w-5xl">
-
               <div className="mb-2 text-center text-[9px] font-bold uppercase tracking-widest text-gray-600">
                 BET
               </div>
 
-              {/* BET SLIDER */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center gap-3">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={bet}
+                  disabled={playing}
+                  onChange={handleBetInput}
+                  className="w-40 rounded-xl border border-[#6C2BD9]/50 bg-[#15131D] px-4 py-3 text-center text-xl font-black text-[#F5C542] outline-none focus:border-[#F5C542]"
+                />
+
+                <span className="text-sm font-black text-gray-600">
+                  / {balance.toLocaleString("en-US")} 💎
+                </span>
+              </div>
+
+              <div className="mt-3 flex items-center gap-3">
                 <span className="w-8 text-left text-xs font-black text-gray-500">
                   0
                 </span>
@@ -576,7 +633,7 @@ export default function JokerPokerPage() {
                   min="0"
                   max={Math.max(balance, 1)}
                   step="1"
-                  value={bet}
+                  value={Math.min(bet, balance)}
                   disabled={
                     playing || balance <= 0
                   }
@@ -591,16 +648,6 @@ export default function JokerPokerPage() {
                 <span className="w-12 text-right text-xs font-black text-[#F5C542]">
                   ALL IN
                 </span>
-              </div>
-
-              <div className="mt-3 text-center">
-                <div className="text-[8px] text-gray-600">
-                  CURRENT BET
-                </div>
-
-                <div className="text-2xl font-black text-[#F5C542]">
-                  💎 {bet.toLocaleString("en-US")}
-                </div>
               </div>
 
               <div className="mt-3 flex justify-center">
@@ -638,29 +685,61 @@ export default function JokerPokerPage() {
                   </button>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
 
-              <div className="mt-4 flex flex-wrap justify-center gap-1.5">
-                {Object.entries(payouts).map(
-                  ([name, multiplier]) => (
+        <div className="mt-7">
+          <div className="mb-4 text-center text-sm font-black uppercase tracking-[0.3em] text-[#F5C542]">
+            PAYTABLE
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
+            {Object.entries(payouts).map(
+              ([name, multiplier]) => {
+                const active = result === name;
+
+                return (
+                  <div
+                    key={name}
+                    className={
+                      active
+                        ? "rounded-xl border-2 border-[#F5C542] bg-[#F5C542] px-4 py-3 text-center shadow-[0_0_25px_rgba(245,197,66,0.65)] transition-all duration-500"
+                        : "rounded-xl border border-[#6C2BD9]/30 bg-[#111116] px-4 py-3 text-center transition-all duration-500"
+                    }
+                  >
                     <div
-                      key={name}
-                      className="rounded-md border border-[#211d29] bg-[#111116] px-2 py-1 text-[8px]"
+                      className={
+                        active
+                          ? "text-xs font-black text-black"
+                          : "text-xs font-bold text-gray-400"
+                      }
                     >
-                      <span className="text-gray-600">
-                        {name}
-                      </span>
-
-                      <span className="ml-1 font-black text-[#F5C542]">
-                        {multiplier}x
-                      </span>
+                      {name}
                     </div>
-                  )
-                )}
-              </div>
 
-              <div className="mt-2 text-center text-[8px] text-gray-700">
-                🃏 Joker is wild
-              </div>
+                    <div
+                      className={
+                        active
+                          ? "mt-1 text-xl font-black text-black"
+                          : "mt-1 text-xl font-black text-[#F5C542]"
+                      }
+                    >
+                      {multiplier}x
+                    </div>
+                  </div>
+                );
+              }
+            )}
+          </div>
+
+          <div className="mt-6 text-center">
+            <div className="text-2xl font-black uppercase tracking-[0.25em] text-[#F5C542]">
+              🃏 JOKER IS WILD
+            </div>
+
+            <div className="mt-1 text-xs font-bold text-gray-500">
+              Joker can represent any card
             </div>
           </div>
         </div>
