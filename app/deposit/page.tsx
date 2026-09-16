@@ -12,6 +12,7 @@ type DepositItem = {
   image: string;
   wear: string;
   rarity: string;
+  rarityColor: string;
 };
 
 const depositItems: DepositItem[] = [
@@ -22,6 +23,7 @@ const depositItems: DepositItem[] = [
     image: "/skins/ak47-redline.png",
     wear: "Field-Tested",
     rarity: "Classified",
+    rarityColor: "#D32CE6",
   },
   {
     id: 2,
@@ -30,6 +32,7 @@ const depositItems: DepositItem[] = [
     image: "/skins/awp-asiimov.png",
     wear: "Field-Tested",
     rarity: "Covert",
+    rarityColor: "#EB4B4B",
   },
   {
     id: 3,
@@ -38,6 +41,7 @@ const depositItems: DepositItem[] = [
     image: "/skins/m4a1s-printstream.png",
     wear: "Minimal Wear",
     rarity: "Covert",
+    rarityColor: "#EB4B4B",
   },
 ];
 
@@ -105,15 +109,33 @@ export default function DepositPage() {
 
   return (
     <main className="min-h-screen bg-[#0B0B0F] text-[#F2F2F2]">
-      {/* FULL SCREEN DEPOSIT ANIMATION */}
+
+      {/* DEPOSIT SUCCESS */}
       {showDepositAnimation && depositedItem && (
-        <div className="deposit-reveal fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-[#0B0B0F]/95 backdrop-blur-md">
-          <div className="deposit-glow absolute left-1/2 top-1/2 h-[700px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#6C2BD9]/25 blur-[120px]" />
+        <div className="deposit-reveal fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-[#08080C]/95 backdrop-blur-xl">
 
-          <div className="deposit-ring absolute left-1/2 top-1/2 h-[200px] w-[200px] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#F5C542]/70" />
+          {/* BACKGROUND GLOW */}
+          <div
+            className="deposit-glow absolute left-1/2 top-1/2 h-[750px] w-[750px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[130px]"
+            style={{
+              backgroundColor:
+                depositedItem.rarityColor + "25",
+            }}
+          />
 
+          {/* EXPANDING RING */}
+          <div
+            className="deposit-ring absolute left-1/2 top-1/2 h-[220px] w-[220px] -translate-x-1/2 -translate-y-1/2 rounded-full border-2"
+            style={{
+              borderColor:
+                depositedItem.rarityColor,
+            }}
+          />
+
+          {/* FLASH */}
           <div className="deposit-flash absolute left-1/2 top-1/2 h-[120px] w-[120px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#F5C542]/30 blur-[30px]" />
 
+          {/* PARTICLES */}
           <span className="particle particle-1">
             💎
           </span>
@@ -146,27 +168,74 @@ export default function DepositPage() {
             ✦
           </span>
 
+          {/* CONTENT */}
           <div className="deposit-content relative z-20 flex flex-col items-center text-center">
-            <div className="text-[11px] font-black uppercase tracking-[0.45em] text-[#20C997]">
+
+            <div className="text-[10px] font-black uppercase tracking-[0.5em] text-[#6C2BD9]">
+              CS ACE
+            </div>
+
+            <div className="mt-2 text-[12px] font-black uppercase tracking-[0.4em] text-[#20C997]">
               DEPOSIT SUCCESSFUL
             </div>
 
+            {/* SKIN */}
             <div className="relative mt-7">
-              <div className="item-halo absolute -inset-8 rounded-full bg-[#6C2BD9]/30 blur-[45px]" />
 
-              <div className="item-card relative flex h-52 w-52 items-center justify-center overflow-hidden rounded-[40px] border-2 border-[#F5C542] bg-[radial-gradient(circle_at_center,#4a2087,#24103f,#0B0B0F)] shadow-[0_0_80px_rgba(245,197,66,0.3)]">
+              <div
+                className="item-halo absolute -inset-14 rounded-full blur-[55px]"
+                style={{
+                  backgroundColor:
+                    depositedItem.rarityColor +
+                    "30",
+                }}
+              />
+
+              <div
+                className="item-card relative flex h-56 w-72 items-center justify-center overflow-hidden rounded-[34px] border-2 bg-[radial-gradient(circle_at_center,#351765,#181020,#09090D)]"
+                style={{
+                  borderColor:
+                    depositedItem.rarityColor,
+
+                  boxShadow: `0 0 80px ${depositedItem.rarityColor}35`,
+                }}
+              >
+
+                <div
+                  className="absolute bottom-0 left-0 h-[5px] w-full"
+                  style={{
+                    backgroundColor:
+                      depositedItem.rarityColor,
+
+                    boxShadow: `0 0 20px ${depositedItem.rarityColor}`,
+                  }}
+                />
+
                 <Image
                   src={depositedItem.image}
                   alt={depositedItem.name}
-                  width={300}
-                  height={220}
-                  className="h-auto w-[90%] object-contain drop-shadow-[0_15px_25px_rgba(0,0,0,0.6)]"
+                  width={420}
+                  height={280}
+                  className="relative z-10 h-[170px] w-[92%] object-contain drop-shadow-[0_18px_25px_rgba(0,0,0,0.75)]"
                   priority
                 />
+
               </div>
             </div>
 
-            <h2 className="mt-7 max-w-xl px-5 text-3xl font-black text-white md:text-5xl">
+            {/* RARITY */}
+            <div
+              className="mt-6 text-[10px] font-black uppercase tracking-[0.3em]"
+              style={{
+                color:
+                  depositedItem.rarityColor,
+              }}
+            >
+              {depositedItem.rarity}
+            </div>
+
+            {/* NAME */}
+            <h2 className="mt-2 max-w-xl px-5 text-3xl font-black text-white md:text-5xl">
               {depositedItem.name}
             </h2>
 
@@ -174,7 +243,9 @@ export default function DepositPage() {
               {depositedItem.wear}
             </div>
 
-            <div className="value-reveal mt-6 rounded-2xl border border-[#F5C542]/50 bg-[#15131D] px-8 py-4 shadow-[0_0_40px_rgba(245,197,66,0.18)]">
+            {/* EMERALDS */}
+            <div className="value-reveal mt-6 rounded-2xl border border-[#20C997]/40 bg-[#10251f] px-8 py-4 shadow-[0_0_40px_rgba(32,201,151,0.15)]">
+
               <div className="text-[9px] font-black uppercase tracking-[0.3em] text-[#20C997]">
                 EMERALDS ADDED
               </div>
@@ -185,253 +256,22 @@ export default function DepositPage() {
                   "en-US"
                 )}
               </div>
+
             </div>
 
-            <div className="mt-7 text-[10px] font-black uppercase tracking-[0.3em] text-gray-700">
-              DEMO ONLY
+            <div className="mt-6 text-[9px] font-black uppercase tracking-[0.3em] text-gray-700">
+              CS ACE • DEMO ONLY
             </div>
+
           </div>
-
-          <style jsx>{`
-            .deposit-reveal {
-              animation: screenIn 0.25s ease-out both;
-            }
-
-            .deposit-glow {
-              animation: glowReveal 1.4s ease-out both;
-            }
-
-            .deposit-ring {
-              animation: ringExpand 1.1s ease-out both;
-            }
-
-            .deposit-flash {
-              animation: flash 0.7s ease-out both;
-            }
-
-            .deposit-content {
-              animation: contentReveal 0.65s
-                cubic-bezier(0.16, 1, 0.3, 1) both;
-            }
-
-            .item-card {
-              animation: itemReveal 0.75s
-                cubic-bezier(0.16, 1, 0.3, 1) both;
-            }
-
-            .item-halo {
-              animation: halo 1.8s ease-in-out
-                infinite alternate;
-            }
-
-            .value-reveal {
-              animation: valueReveal 0.55s ease-out
-                0.35s both;
-            }
-
-            .particle {
-              position: absolute;
-              left: 50%;
-              top: 50%;
-              font-size: 24px;
-              opacity: 0;
-              color: #f5c542;
-            }
-
-            .particle-1 {
-              --x: -280px;
-              --y: -180px;
-              animation: particleMove 1.1s ease-out
-                0.1s both;
-            }
-
-            .particle-2 {
-              --x: 260px;
-              --y: -190px;
-              animation: particleMove 1.2s ease-out
-                0.15s both;
-            }
-
-            .particle-3 {
-              --x: -330px;
-              --y: 40px;
-              animation: particleMove 1.25s ease-out
-                0.05s both;
-            }
-
-            .particle-4 {
-              --x: 340px;
-              --y: 50px;
-              animation: particleMove 1.1s ease-out
-                0.2s both;
-            }
-
-            .particle-5 {
-              --x: -230px;
-              --y: 220px;
-              animation: particleMove 1.3s ease-out
-                0.12s both;
-            }
-
-            .particle-6 {
-              --x: 230px;
-              --y: 230px;
-              animation: particleMove 1.2s ease-out
-                0.08s both;
-            }
-
-            .particle-7 {
-              --x: -80px;
-              --y: -290px;
-              animation: particleMove 1.15s ease-out
-                0.18s both;
-            }
-
-            .particle-8 {
-              --x: 100px;
-              --y: 290px;
-              animation: particleMove 1.25s ease-out
-                0.14s both;
-            }
-
-            @keyframes screenIn {
-              from {
-                opacity: 0;
-              }
-
-              to {
-                opacity: 1;
-              }
-            }
-
-            @keyframes glowReveal {
-              0% {
-                opacity: 0;
-                transform: translate(-50%, -50%)
-                  scale(0.2);
-              }
-
-              45% {
-                opacity: 1;
-              }
-
-              100% {
-                opacity: 0.55;
-                transform: translate(-50%, -50%)
-                  scale(1.15);
-              }
-            }
-
-            @keyframes ringExpand {
-              0% {
-                opacity: 1;
-                transform: translate(-50%, -50%)
-                  scale(0.15);
-              }
-
-              100% {
-                opacity: 0;
-                transform: translate(-50%, -50%)
-                  scale(3.8);
-              }
-            }
-
-            @keyframes flash {
-              0% {
-                opacity: 0;
-                transform: translate(-50%, -50%)
-                  scale(0.2);
-              }
-
-              25% {
-                opacity: 1;
-              }
-
-              100% {
-                opacity: 0;
-                transform: translate(-50%, -50%)
-                  scale(4);
-              }
-            }
-
-            @keyframes contentReveal {
-              from {
-                opacity: 0;
-                transform: scale(0.88);
-              }
-
-              to {
-                opacity: 1;
-                transform: scale(1);
-              }
-            }
-
-            @keyframes itemReveal {
-              0% {
-                opacity: 0;
-                transform: scale(0.35)
-                  rotate(-6deg);
-              }
-
-              100% {
-                opacity: 1;
-                transform: scale(1)
-                  rotate(0deg);
-              }
-            }
-
-            @keyframes halo {
-              from {
-                opacity: 0.35;
-                transform: scale(0.9);
-              }
-
-              to {
-                opacity: 0.75;
-                transform: scale(1.08);
-              }
-            }
-
-            @keyframes valueReveal {
-              from {
-                opacity: 0;
-                transform: translateY(20px);
-              }
-
-              to {
-                opacity: 1;
-                transform: translateY(0);
-              }
-            }
-
-            @keyframes particleMove {
-              0% {
-                opacity: 0;
-                transform: translate(-50%, -50%)
-                  scale(0.4);
-              }
-
-              15% {
-                opacity: 1;
-              }
-
-              100% {
-                opacity: 0;
-                transform: translate(
-                    calc(-50% + var(--x)),
-                    calc(-50% + var(--y))
-                  )
-                  scale(1.2)
-                  rotate(45deg);
-              }
-            }
-          `}</style>
         </div>
       )}
 
       {/* HEADER */}
       <header className="border-b border-[#6C2BD9]/30 bg-[#0B0B0F]">
+
         <div className="mx-auto flex max-w-6xl items-center px-5 py-4">
+
           <Link
             href="/"
             className="flex shrink-0 items-center"
@@ -447,7 +287,9 @@ export default function DepositPage() {
           </Link>
 
           <div className="hidden flex-1 items-center md:flex">
+
             <nav className="ml-10 flex items-center gap-6 text-sm text-gray-500">
+
               <Link
                 href="/"
                 className="transition hover:text-white"
@@ -475,12 +317,14 @@ export default function DepositPage() {
               >
                 Case
               </Link>
+
             </nav>
 
             <nav className="ml-auto mr-6 flex items-center gap-3">
+
               <Link
                 href="/deposit"
-                className="rounded-lg border border-[#6C2BD9] bg-[#6C2BD9] px-4 py-2 text-xs font-black text-white"
+                className="rounded-lg border border-[#6C2BD9] bg-[#6C2BD9] px-4 py-2 text-xs font-black text-white shadow-[0_0_18px_rgba(108,43,217,0.20)]"
               >
                 DEPOSIT
               </Link>
@@ -491,25 +335,36 @@ export default function DepositPage() {
               >
                 WITHDRAW
               </Link>
+
             </nav>
           </div>
 
+          {/* BALANCE */}
           <div className="ml-auto rounded-xl border border-[#6C2BD9]/40 bg-[#15131D] px-4 py-2 md:ml-0">
+
             <div className="text-[9px] font-bold uppercase tracking-widest text-gray-500">
-              Balance
+              BALANCE
             </div>
 
             <div className="font-black text-[#F5C542]">
-              💎 {balance.toLocaleString("en-US")}
+              💎{" "}
+              {balance.toLocaleString(
+                "en-US"
+              )}
             </div>
+
           </div>
+
         </div>
       </header>
 
-      {/* CONTENT */}
-      <section className="mx-auto max-w-6xl px-4 py-8">
+      {/* PAGE */}
+      <section className="mx-auto max-w-6xl px-4 py-10">
+
+        {/* TITLE */}
         <div className="text-center">
-          <div className="text-[10px] font-bold uppercase tracking-[0.35em] text-[#6C2BD9]">
+
+          <div className="text-[10px] font-black uppercase tracking-[0.4em] text-[#6C2BD9]">
             CS ACE
           </div>
 
@@ -520,127 +375,495 @@ export default function DepositPage() {
           <p className="mx-auto mt-3 max-w-lg text-sm text-gray-500">
             Deposit demo skins and receive virtual Emeralds.
           </p>
+
         </div>
 
-        {/* BALANCE */}
-        <div className="mx-auto mt-7 max-w-md rounded-2xl border border-[#6C2BD9]/40 bg-[radial-gradient(circle_at_top,#29134f,#151020,#0B0B0F)] p-6 text-center">
-          <div className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500">
-            Current Balance
+        {/* WALLET */}
+        <div className="relative mx-auto mt-8 max-w-md overflow-hidden rounded-2xl border border-[#6C2BD9]/50 bg-[radial-gradient(circle_at_top,#321761,#171020,#0B0B0F)] p-7 text-center shadow-[0_0_50px_rgba(108,43,217,0.12)]">
+
+          <div className="absolute left-1/2 top-0 h-[1px] w-1/2 -translate-x-1/2 bg-gradient-to-r from-transparent via-[#F5C542] to-transparent" />
+
+          <div className="text-[9px] font-black uppercase tracking-[0.35em] text-[#6C2BD9]">
+            CS ACE WALLET
           </div>
 
-          <div className="mt-2 text-4xl font-black text-[#F5C542]">
-            💎 {balance.toLocaleString("en-US")}
+          <div className="mt-3 text-[10px] font-black uppercase tracking-[0.25em] text-gray-500">
+            CURRENT BALANCE
           </div>
+
+          <div className="mt-2 text-4xl font-black text-[#F5C542] md:text-5xl">
+            💎{" "}
+            {balance.toLocaleString(
+              "en-US"
+            )}
+          </div>
+
         </div>
 
         {/* MESSAGE */}
         <div className="mx-auto mt-4 h-16 max-w-xl">
+
           {message && (
             <div className="rounded-xl border border-[#20C997]/40 bg-[#10251f] px-5 py-3 text-center text-sm font-black text-[#20C997]">
               {message}
             </div>
           )}
+
         </div>
 
-        {/* ITEMS */}
-        <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {/* MARKET TITLE */}
+        <div className="mb-5 mt-3">
+
+          <div className="text-[9px] font-black uppercase tracking-[0.35em] text-[#6C2BD9]">
+            CS ACE INVENTORY
+          </div>
+
+          <div className="mt-1 flex items-end justify-between">
+
+            <h2 className="text-2xl font-black">
+              CHOOSE A SKIN
+            </h2>
+
+            <div className="hidden text-[10px] font-bold uppercase tracking-widest text-gray-700 sm:block">
+              {depositItems.length} ITEMS
+            </div>
+
+          </div>
+        </div>
+
+        {/* SKINS */}
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+
           {depositItems.map((item) => {
             const depositing =
               depositingId === item.id;
 
             const deposited =
-              depositedSkinIds.includes(item.id);
+              depositedSkinIds.includes(
+                item.id
+              );
 
             return (
               <div
                 key={item.id}
-                className={`overflow-hidden rounded-2xl border bg-[#111116] transition ${
+                className={`skin-card group relative overflow-hidden rounded-2xl border bg-[#111116] transition duration-300 ${
                   deposited
-                    ? "border-[#20C997]/30 opacity-60"
-                    : "border-[#6C2BD9]/30 hover:border-[#6C2BD9]/70"
+                    ? "opacity-60"
+                    : "hover:-translate-y-1"
                 }`}
+                style={{
+                  borderColor: deposited
+                    ? "#20C99755"
+                    : item.rarityColor + "55",
+                }}
               >
-                {/* REAL SKIN IMAGE */}
-                <div className="relative flex h-36 items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_center,#351765,#24103f,#0B0B0F)]">
-                  <div className="absolute h-24 w-40 rounded-full bg-[#6C2BD9]/20 blur-[45px]" />
+
+                {/* RARITY TOP LINE */}
+                <div
+                  className="absolute left-0 top-0 z-20 h-[3px] w-full"
+                  style={{
+                    backgroundColor: deposited
+                      ? "#20C997"
+                      : item.rarityColor,
+
+                    boxShadow: deposited
+                      ? "0 0 14px #20C997"
+                      : `0 0 14px ${item.rarityColor}`,
+                  }}
+                />
+
+                {/* IMAGE */}
+                <div className="relative flex h-44 items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_center,#351765,#1b102c,#0B0B0F)]">
+
+                  <div
+                    className="absolute h-28 w-44 rounded-full opacity-40 blur-[50px] transition duration-300 group-hover:opacity-70"
+                    style={{
+                      backgroundColor:
+                        item.rarityColor,
+                    }}
+                  />
+
+                  {/* RARITY BADGE */}
+                  <div className="absolute left-4 top-4 z-20 rounded-lg border border-white/10 bg-black/30 px-2.5 py-1 backdrop-blur-md">
+
+                    <span
+                      className="text-[8px] font-black uppercase tracking-[0.2em]"
+                      style={{
+                        color:
+                          item.rarityColor,
+                      }}
+                    >
+                      {item.rarity}
+                    </span>
+
+                  </div>
+
+                  {/* DEPOSITED BADGE */}
+                  {deposited && (
+                    <div className="absolute right-4 top-4 z-20 rounded-lg border border-[#20C997]/30 bg-[#10251f]/90 px-2.5 py-1">
+
+                      <span className="text-[8px] font-black uppercase tracking-[0.2em] text-[#20C997]">
+                        DEPOSITED
+                      </span>
+
+                    </div>
+                  )}
 
                   <Image
                     src={item.image}
                     alt={item.name}
-                    width={320}
-                    height={200}
-                    className="relative z-10 h-[115px] w-[90%] object-contain drop-shadow-[0_15px_20px_rgba(0,0,0,0.65)] transition duration-300 hover:scale-105"
+                    width={360}
+                    height={220}
+                    className="relative z-10 h-[135px] w-[92%] object-contain drop-shadow-[0_18px_22px_rgba(0,0,0,0.75)] transition duration-300 group-hover:scale-105"
                   />
+
                 </div>
 
+                {/* INFO */}
                 <div className="p-5">
-                  <div className="min-h-[48px]">
-                    <h2 className="font-black">
-                      {item.name}
-                    </h2>
 
-                    <div className="mt-1 text-xs text-gray-600">
+                  <div className="min-h-[58px]">
+
+                    <h3 className="text-base font-black text-white">
+                      {item.name}
+                    </h3>
+
+                    <div className="mt-1 text-[11px] font-bold text-gray-600">
                       {item.wear}
                     </div>
+
                   </div>
 
-                  <div className="mt-4 flex items-center justify-between">
-                    <div>
-                      <div className="text-[9px] font-bold uppercase tracking-widest text-gray-600">
-                        Deposit Value
+                  <div className="mt-4 border-t border-white/5 pt-4">
+
+                    <div className="flex items-end justify-between gap-3">
+
+                      <div>
+
+                        <div className="text-[8px] font-black uppercase tracking-[0.25em] text-gray-600">
+                          DEPOSIT VALUE
+                        </div>
+
+                        <div className="mt-1 text-2xl font-black text-[#F5C542]">
+                          💎{" "}
+                          {item.value.toLocaleString(
+                            "en-US"
+                          )}
+                        </div>
+
                       </div>
 
-                      <div className="mt-1 text-xl font-black text-[#F5C542]">
-                        💎{" "}
-                        {item.value.toLocaleString(
-                          "en-US"
-                        )}
+                      <div
+                        className={`rounded-lg border px-3 py-2 text-[9px] font-black uppercase tracking-wider ${
+                          deposited
+                            ? "border-[#20C997]/25 bg-[#10251f] text-[#20C997]"
+                            : "border-[#6C2BD9]/30 bg-[#15131D] text-[#A875FF]"
+                        }`}
+                      >
+                        {deposited
+                          ? "DONE"
+                          : "AVAILABLE"}
                       </div>
+
                     </div>
 
-                    <div className="rounded-lg border border-[#6C2BD9]/20 bg-[#15131D] px-3 py-2 text-[10px] font-bold text-gray-500">
-                      {item.rarity}
-                    </div>
+                    {/* BUTTON */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        deposit(item)
+                      }
+                      disabled={
+                        deposited ||
+                        depositingId !== null
+                      }
+                      className={`mt-5 w-full rounded-xl py-3.5 text-sm font-black transition ${
+                        deposited
+                          ? "cursor-not-allowed border border-[#20C997]/30 bg-[#10251f] text-[#20C997]"
+                          : "bg-[#6C2BD9] text-white shadow-[0_0_25px_rgba(108,43,217,0.18)] hover:bg-[#7d3be8] hover:shadow-[0_0_35px_rgba(108,43,217,0.3)]"
+                      } disabled:opacity-60`}
+                    >
+                      {deposited
+                        ? "DEPOSITED"
+                        : depositing
+                          ? "DEPOSITING..."
+                          : `DEPOSIT — + 💎 ${item.value.toLocaleString(
+                              "en-US"
+                            )}`}
+                    </button>
+
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={() => deposit(item)}
-                    disabled={
-                      deposited ||
-                      depositingId !== null
-                    }
-                    className={`mt-5 w-full rounded-xl py-3 text-sm font-black transition ${
-                      deposited
-                        ? "cursor-not-allowed border border-[#20C997]/30 bg-[#10251f] text-[#20C997]"
-                        : "bg-[#6C2BD9] text-white hover:bg-[#7d3be8]"
-                    } disabled:opacity-60`}
-                  >
-                    {deposited
-                      ? "DEPOSITED"
-                      : depositing
-                        ? "DEPOSITING..."
-                        : "DEPOSIT"}
-                  </button>
                 </div>
+
+                {/* BOTTOM LINE */}
+                <div
+                  className="absolute bottom-0 left-0 h-[3px] w-full opacity-80"
+                  style={{
+                    backgroundColor: deposited
+                      ? "#20C997"
+                      : item.rarityColor,
+                  }}
+                />
+
               </div>
             );
           })}
+
         </div>
 
         {/* DEMO NOTICE */}
-        <div className="mx-auto mt-8 max-w-2xl rounded-2xl border border-[#F5C542]/20 bg-[#15131D] px-6 py-5 text-center">
-          <div className="text-xs font-black uppercase tracking-[0.25em] text-[#F5C542]">
+        <div className="mx-auto mt-10 max-w-2xl rounded-2xl border border-[#F5C542]/20 bg-[#15131D] px-6 py-5 text-center">
+
+          <div className="text-[10px] font-black uppercase tracking-[0.3em] text-[#F5C542]">
             DEMO DEPOSIT
           </div>
 
           <p className="mt-2 text-xs leading-5 text-gray-500">
-            Deposits on this page use demo skins and virtual
-            Emeralds only. No real Steam items, money or external
-            transfers are processed.
+            Deposits on this page use demo skins and
+            virtual Emeralds only. No real Steam items,
+            money or external transfers are processed.
           </p>
+
         </div>
+
       </section>
+
+      {/* ANIMATIONS */}
+      <style jsx>{`
+        .deposit-reveal {
+          animation: screenIn 0.25s ease-out both;
+        }
+
+        .deposit-glow {
+          animation: glowReveal 1.4s ease-out both;
+        }
+
+        .deposit-ring {
+          animation: ringExpand 1.1s ease-out both;
+        }
+
+        .deposit-flash {
+          animation: flash 0.7s ease-out both;
+        }
+
+        .deposit-content {
+          animation: contentReveal 0.65s
+            cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        .item-card {
+          animation: itemReveal 0.75s
+            cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        .item-halo {
+          animation: halo 1.8s ease-in-out
+            infinite alternate;
+        }
+
+        .value-reveal {
+          animation: valueReveal 0.55s ease-out
+            0.35s both;
+        }
+
+        .particle {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          font-size: 24px;
+          opacity: 0;
+          color: #f5c542;
+        }
+
+        .particle-1 {
+          --x: -280px;
+          --y: -180px;
+          animation: particleMove 1.1s ease-out
+            0.1s both;
+        }
+
+        .particle-2 {
+          --x: 260px;
+          --y: -190px;
+          animation: particleMove 1.2s ease-out
+            0.15s both;
+        }
+
+        .particle-3 {
+          --x: -330px;
+          --y: 40px;
+          animation: particleMove 1.25s ease-out
+            0.05s both;
+        }
+
+        .particle-4 {
+          --x: 340px;
+          --y: 50px;
+          animation: particleMove 1.1s ease-out
+            0.2s both;
+        }
+
+        .particle-5 {
+          --x: -230px;
+          --y: 220px;
+          animation: particleMove 1.3s ease-out
+            0.12s both;
+        }
+
+        .particle-6 {
+          --x: 230px;
+          --y: 230px;
+          animation: particleMove 1.2s ease-out
+            0.08s both;
+        }
+
+        .particle-7 {
+          --x: -80px;
+          --y: -290px;
+          animation: particleMove 1.15s ease-out
+            0.18s both;
+        }
+
+        .particle-8 {
+          --x: 100px;
+          --y: 290px;
+          animation: particleMove 1.25s ease-out
+            0.14s both;
+        }
+
+        @keyframes screenIn {
+          from {
+            opacity: 0;
+          }
+
+          to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes glowReveal {
+          0% {
+            opacity: 0;
+            transform: translate(-50%, -50%)
+              scale(0.2);
+          }
+
+          45% {
+            opacity: 1;
+          }
+
+          100% {
+            opacity: 0.55;
+            transform: translate(-50%, -50%)
+              scale(1.15);
+          }
+        }
+
+        @keyframes ringExpand {
+          0% {
+            opacity: 1;
+            transform: translate(-50%, -50%)
+              scale(0.15);
+          }
+
+          100% {
+            opacity: 0;
+            transform: translate(-50%, -50%)
+              scale(3.8);
+          }
+        }
+
+        @keyframes flash {
+          0% {
+            opacity: 0;
+            transform: translate(-50%, -50%)
+              scale(0.2);
+          }
+
+          25% {
+            opacity: 1;
+          }
+
+          100% {
+            opacity: 0;
+            transform: translate(-50%, -50%)
+              scale(4);
+          }
+        }
+
+        @keyframes contentReveal {
+          from {
+            opacity: 0;
+            transform: scale(0.88);
+          }
+
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+
+        @keyframes itemReveal {
+          0% {
+            opacity: 0;
+            transform: scale(0.35)
+              rotate(-6deg);
+          }
+
+          100% {
+            opacity: 1;
+            transform: scale(1)
+              rotate(0deg);
+          }
+        }
+
+        @keyframes halo {
+          from {
+            opacity: 0.35;
+            transform: scale(0.9);
+          }
+
+          to {
+            opacity: 0.75;
+            transform: scale(1.08);
+          }
+        }
+
+        @keyframes valueReveal {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes particleMove {
+          0% {
+            opacity: 0;
+            transform: translate(-50%, -50%)
+              scale(0.4);
+          }
+
+          15% {
+            opacity: 1;
+          }
+
+          100% {
+            opacity: 0;
+            transform: translate(
+                calc(-50% + var(--x)),
+                calc(-50% + var(--y))
+              )
+              scale(1.2)
+              rotate(45deg);
+          }
+        }
+      `}</style>
+
     </main>
   );
 }
