@@ -416,6 +416,13 @@ export default function BlackjackPage() {
               >
                 Blackjack
               </Link>
+
+              <Link
+                href="/case"
+                className="transition hover:text-white"
+              >
+                Case
+              </Link>
             </nav>
 
             {/* DEPOSIT / WITHDRAW */}
@@ -483,7 +490,6 @@ export default function BlackjackPage() {
 
         <div className="overflow-hidden rounded-3xl border border-[#6C2BD9]/40 bg-[#111116]">
           <div className="bg-[radial-gradient(circle_at_center,#29134f,#170d29,#0B0B0F)]">
-
             {/* DEALER */}
             <div className="min-h-[190px] px-4 py-4 text-center">
               <div className="mb-2 text-[9px] font-black uppercase tracking-[0.3em] text-[#F5C542]">

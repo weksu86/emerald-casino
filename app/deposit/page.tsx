@@ -463,6 +463,13 @@ export default function DepositPage() {
               >
                 Blackjack
               </Link>
+
+              <Link
+                href="/case"
+                className="transition hover:text-white"
+              >
+                Case
+              </Link>
             </nav>
 
             <nav className="ml-auto mr-6 flex items-center gap-3">
