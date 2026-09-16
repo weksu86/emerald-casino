@@ -612,6 +612,15 @@ export default function CasePage() {
               </Link>
 
               <Link
+                onMouseEnter={() => playSound("ui-hover")}
+                onClick={() => playSound("ui-click")}
+                href="/mines"
+                className="transition hover:text-white"
+              >
+                Mines
+              </Link>
+
+              <Link
             onMouseEnter={() => playSound("ui-hover")}
             onClick={() => playSound("ui-click")}
                 href="/case"

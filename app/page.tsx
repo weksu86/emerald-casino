@@ -295,6 +295,14 @@ export default function Home() {
 
               <Link
               {...soundProps}
+                href="/mines"
+                className="transition hover:text-white"
+              >
+                Mines
+              </Link>
+
+              <Link
+              {...soundProps}
                 href="/case"
                 className="transition hover:text-white"
               >
@@ -644,7 +652,7 @@ export default function Home() {
             </h2>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {/* JOKER POKER */}
             <div className="rounded-2xl border border-[#6C2BD9]/30 bg-[#111116] p-6 transition hover:border-[#6C2BD9]/70">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[radial-gradient(circle_at_center,#351765,#24103f,#0B0B0F)] text-4xl">
@@ -691,6 +699,36 @@ export default function Home() {
               >
                 PLAY NOW →
               </Link>
+            </div>
+
+            {/* MINES */}
+            <div className="relative overflow-hidden rounded-2xl border border-[#6C2BD9]/30 bg-[#111116] p-6 transition hover:border-[#6C2BD9]/70">
+              <div className="pointer-events-none absolute right-[-50px] top-[-50px] h-40 w-40 rounded-full bg-[#6C2BD9]/15 blur-[50px]" />
+
+              <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-[radial-gradient(circle_at_center,#351765,#24103f,#0B0B0F)] text-4xl">
+                💣
+              </div>
+
+              <div className="relative">
+                <div className="mt-4 flex items-center gap-2">
+                  <h2 className="text-lg font-black">MINES</h2>
+                  <span className="rounded-full border border-[#6C2BD9]/30 bg-[#6C2BD9]/10 px-2 py-1 text-[8px] font-black uppercase tracking-wider text-[#A78BFA]">
+                    NEW
+                  </span>
+                </div>
+
+                <p className="mt-2 min-h-[40px] text-xs leading-5 text-gray-500">
+                  Find the gems, avoid the mines and cash out before it is too late.
+                </p>
+
+                <Link
+                  {...soundProps}
+                  href="/mines"
+                  className="mt-5 inline-block text-xs font-black text-[#F5C542] hover:text-white"
+                >
+                  PLAY NOW →
+                </Link>
+              </div>
             </div>
 
             {/* CS ACE CASE */}
