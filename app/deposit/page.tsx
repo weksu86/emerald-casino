@@ -4,6 +4,135 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { useEmeralds } from "../context/EmeraldContext";
+import { useSharedSoundEnabled } from "../lib/useSoundSettings";
+import AnimatedBalance from "../components/AnimatedBalance";
+
+
+type DepositSound = "ui-click" | "ui-hover" | "deposit" | "error";
+
+type WebkitWindow = Window & {
+  webkitAudioContext?: typeof AudioContext;
+};
+
+function playDepositSound(name: DepositSound) {
+  if (typeof window === "undefined") return;
+
+  const AudioContextClass =
+    window.AudioContext || (window as WebkitWindow).webkitAudioContext;
+
+  if (!AudioContextClass) return;
+
+  const ctx = new AudioContextClass();
+  const now = ctx.currentTime + 0.008;
+  const master = ctx.createGain();
+  master.gain.value = 0.72;
+  master.connect(ctx.destination);
+
+  const tone = (
+    frequency: number,
+    start: number,
+    duration: number,
+    volume: number,
+    type: OscillatorType = "sine",
+    endFrequency?: number
+  ) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(frequency, start);
+
+    if (endFrequency) {
+      osc.frequency.exponentialRampToValueAtTime(
+        endFrequency,
+        start + duration
+      );
+    }
+
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(
+      volume,
+      start + Math.min(0.008, duration * 0.2)
+    );
+    gain.gain.exponentialRampToValueAtTime(
+      0.0001,
+      start + duration
+    );
+
+    osc.connect(gain);
+    gain.connect(master);
+    osc.start(start);
+    osc.stop(start + duration + 0.02);
+  };
+
+  const noise = (
+    start: number,
+    duration: number,
+    volume: number,
+    highpass: number,
+    lowpass = 12000
+  ) => {
+    const length = Math.max(1, Math.floor(ctx.sampleRate * duration));
+    const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+
+    for (let i = 0; i < length; i++) {
+      const envelope = Math.pow(1 - i / length, 1.8);
+      data[i] = (Math.random() * 2 - 1) * envelope;
+    }
+
+    const source = ctx.createBufferSource();
+    const hp = ctx.createBiquadFilter();
+    const lp = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+
+    source.buffer = buffer;
+    hp.type = "highpass";
+    hp.frequency.value = highpass;
+    lp.type = "lowpass";
+    lp.frequency.value = lowpass;
+
+    gain.gain.setValueAtTime(volume, start);
+    gain.gain.exponentialRampToValueAtTime(
+      0.0001,
+      start + duration
+    );
+
+    source.connect(hp);
+    hp.connect(lp);
+    lp.connect(gain);
+    gain.connect(master);
+    source.start(start);
+  };
+
+  switch (name) {
+    case "ui-click":
+      tone(1450, now, 0.032, 0.022, "triangle", 1050);
+      noise(now, 0.025, 0.012, 3500, 9000);
+      break;
+
+    case "ui-hover":
+      tone(1280, now, 0.035, 0.010, "triangle", 1510);
+      break;
+
+    case "deposit":
+      // Bright ascending counterpart to the Withdraw sound.
+      tone(987.77, now, 0.11, 0.025);
+      tone(1318.51, now + 0.06, 0.13, 0.029);
+      tone(1760, now + 0.125, 0.16, 0.031);
+      tone(2093, now + 0.19, 0.2, 0.022, "triangle");
+      noise(now + 0.19, 0.045, 0.01, 3400, 10000);
+      break;
+
+    case "error":
+      tone(420, now, 0.075, 0.02, "square", 360);
+      tone(310, now + 0.07, 0.11, 0.018, "triangle", 270);
+      break;
+  }
+
+  window.setTimeout(() => {
+    void ctx.close();
+  }, 850);
+}
 
 type DepositItem = {
   id: number;
@@ -47,7 +176,6 @@ const depositItems: DepositItem[] = [
 
 export default function DepositPage() {
   const {
-    balance,
     depositedSkinIds,
     depositSkin,
   } = useEmeralds();
@@ -64,6 +192,13 @@ export default function DepositPage() {
   ] = useState(false);
 
   const [message, setMessage] = useState("");
+  const [soundEnabled] = useSharedSoundEnabled();
+
+  const playSound = (name: DepositSound) => {
+    if (!soundEnabled) return;
+    playDepositSound(name);
+  };
+
 
   function deposit(item: DepositItem) {
     if (depositingId !== null) return;
@@ -82,11 +217,13 @@ export default function DepositPage() {
       );
 
       if (!deposited) {
+        playSound("error");
         setDepositingId(null);
         return;
       }
 
       setDepositedItem(item);
+      playSound("deposit");
       setShowDepositAnimation(true);
 
       setMessage(
@@ -273,6 +410,8 @@ export default function DepositPage() {
         <div className="mx-auto flex max-w-6xl items-center px-5 py-4">
 
           <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
             href="/"
             className="flex shrink-0 items-center"
           >
@@ -291,6 +430,8 @@ export default function DepositPage() {
             <nav className="ml-10 flex items-center gap-6 text-sm text-gray-500">
 
               <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
                 href="/"
                 className="transition hover:text-white"
               >
@@ -298,6 +439,8 @@ export default function DepositPage() {
               </Link>
 
               <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
                 href="/joker-poker"
                 className="transition hover:text-white"
               >
@@ -305,6 +448,8 @@ export default function DepositPage() {
               </Link>
 
               <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
                 href="/blackjack"
                 className="transition hover:text-white"
               >
@@ -312,6 +457,8 @@ export default function DepositPage() {
               </Link>
 
               <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
                 href="/case"
                 className="transition hover:text-white"
               >
@@ -323,6 +470,8 @@ export default function DepositPage() {
             <nav className="ml-auto mr-6 flex items-center gap-3">
 
               <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
                 href="/deposit"
                 className="rounded-lg border border-[#6C2BD9] bg-[#6C2BD9] px-4 py-2 text-xs font-black text-white shadow-[0_0_18px_rgba(108,43,217,0.20)]"
               >
@@ -330,6 +479,8 @@ export default function DepositPage() {
               </Link>
 
               <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
                 href="/withdraw"
                 className="rounded-lg border border-[#F5C542]/30 bg-[#15131D] px-4 py-2 text-xs font-black text-[#F5C542] transition hover:border-[#F5C542]"
               >
@@ -346,12 +497,7 @@ export default function DepositPage() {
               BALANCE
             </div>
 
-            <div className="font-black text-[#F5C542]">
-              💎{" "}
-              {balance.toLocaleString(
-                "en-US"
-              )}
-            </div>
+            <AnimatedBalance />
 
           </div>
 
@@ -391,11 +537,8 @@ export default function DepositPage() {
             CURRENT BALANCE
           </div>
 
-          <div className="mt-2 text-4xl font-black text-[#F5C542] md:text-5xl">
-            💎{" "}
-            {balance.toLocaleString(
-              "en-US"
-            )}
+          <div className="mt-2 text-4xl md:text-5xl">
+            <AnimatedBalance />
           </div>
 
         </div>
@@ -570,9 +713,11 @@ export default function DepositPage() {
                     {/* BUTTON */}
                     <button
                       type="button"
-                      onClick={() =>
-                        deposit(item)
-                      }
+                      onMouseEnter={() => playSound("ui-hover")}
+                      onClick={() => {
+                        playSound("ui-click");
+                        deposit(item);
+                      }}
                       disabled={
                         deposited ||
                         depositingId !== null

@@ -4,6 +4,135 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { useEmeralds } from "../context/EmeraldContext";
+import { useSharedSoundEnabled } from "../lib/useSoundSettings";
+import AnimatedBalance from "../components/AnimatedBalance";
+
+
+type WithdrawSound = "ui-click" | "ui-hover" | "withdraw" | "error";
+
+type WebkitWindow = Window & {
+  webkitAudioContext?: typeof AudioContext;
+};
+
+function playWithdrawSound(name: WithdrawSound) {
+  if (typeof window === "undefined") return;
+
+  const AudioContextClass =
+    window.AudioContext || (window as WebkitWindow).webkitAudioContext;
+
+  if (!AudioContextClass) return;
+
+  const ctx = new AudioContextClass();
+  const now = ctx.currentTime + 0.008;
+  const master = ctx.createGain();
+  master.gain.value = 0.72;
+  master.connect(ctx.destination);
+
+  const tone = (
+    frequency: number,
+    start: number,
+    duration: number,
+    volume: number,
+    type: OscillatorType = "sine",
+    endFrequency?: number
+  ) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(frequency, start);
+
+    if (endFrequency) {
+      osc.frequency.exponentialRampToValueAtTime(
+        endFrequency,
+        start + duration
+      );
+    }
+
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(
+      volume,
+      start + Math.min(0.008, duration * 0.2)
+    );
+    gain.gain.exponentialRampToValueAtTime(
+      0.0001,
+      start + duration
+    );
+
+    osc.connect(gain);
+    gain.connect(master);
+    osc.start(start);
+    osc.stop(start + duration + 0.02);
+  };
+
+  const noise = (
+    start: number,
+    duration: number,
+    volume: number,
+    highpass: number,
+    lowpass = 12000
+  ) => {
+    const length = Math.max(1, Math.floor(ctx.sampleRate * duration));
+    const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+
+    for (let i = 0; i < length; i++) {
+      const envelope = Math.pow(1 - i / length, 1.8);
+      data[i] = (Math.random() * 2 - 1) * envelope;
+    }
+
+    const source = ctx.createBufferSource();
+    const hp = ctx.createBiquadFilter();
+    const lp = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+
+    source.buffer = buffer;
+    hp.type = "highpass";
+    hp.frequency.value = highpass;
+    lp.type = "lowpass";
+    lp.frequency.value = lowpass;
+
+    gain.gain.setValueAtTime(volume, start);
+    gain.gain.exponentialRampToValueAtTime(
+      0.0001,
+      start + duration
+    );
+
+    source.connect(hp);
+    hp.connect(lp);
+    lp.connect(gain);
+    gain.connect(master);
+    source.start(start);
+  };
+
+  switch (name) {
+    case "ui-click":
+      tone(1450, now, 0.032, 0.022, "triangle", 1050);
+      noise(now, 0.025, 0.012, 3500, 9000);
+      break;
+
+    case "ui-hover":
+      tone(1280, now, 0.035, 0.010, "triangle", 1510);
+      break;
+
+    case "withdraw":
+      // Same premium CS ACE family: metallic start + clean descending cash-out cue.
+      tone(1760, now, 0.07, 0.022, "sine", 1500);
+      tone(1318.51, now + 0.055, 0.13, 0.028);
+      tone(987.77, now + 0.12, 0.16, 0.03);
+      tone(783.99, now + 0.19, 0.21, 0.024, "triangle");
+      noise(now, 0.04, 0.01, 3200, 9500);
+      break;
+
+    case "error":
+      tone(420, now, 0.075, 0.02, "square", 360);
+      tone(310, now + 0.07, 0.11, 0.018, "triangle", 270);
+      break;
+  }
+
+  window.setTimeout(() => {
+    void ctx.close();
+  }, 850);
+}
 
 type WithdrawItem = {
   id: number;
@@ -77,6 +206,13 @@ export default function WithdrawPage() {
 
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
+  const [soundEnabled] = useSharedSoundEnabled();
+
+  const playSound = (name: WithdrawSound) => {
+    if (!soundEnabled) return;
+    playWithdrawSound(name);
+  };
+
 
   const [withdrawingId, setWithdrawingId] =
     useState<number | null>(null);
@@ -93,6 +229,7 @@ export default function WithdrawPage() {
     if (withdrawingId !== null) return;
 
     if (balance < item.price) {
+      playSound("error");
       setSuccess(false);
       setMessage("Not enough Emeralds.");
       return;
@@ -105,6 +242,7 @@ export default function WithdrawPage() {
       const paid = removeEmeralds(item.price);
 
       if (!paid) {
+        playSound("error");
         setSuccess(false);
         setMessage("Not enough Emeralds.");
         setWithdrawingId(null);
@@ -112,6 +250,7 @@ export default function WithdrawPage() {
       }
 
       setSuccess(true);
+      playSound("withdraw");
 
       setMessage(
         `${item.name} withdrawn — DEMO ONLY`
@@ -258,6 +397,8 @@ export default function WithdrawPage() {
         <div className="mx-auto flex max-w-6xl items-center px-5 py-4">
 
           <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
             href="/"
             className="flex shrink-0 items-center"
           >
@@ -276,6 +417,8 @@ export default function WithdrawPage() {
             <nav className="ml-10 flex items-center gap-6 text-sm text-gray-500">
 
               <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
                 href="/"
                 className="transition hover:text-white"
               >
@@ -283,6 +426,8 @@ export default function WithdrawPage() {
               </Link>
 
               <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
                 href="/joker-poker"
                 className="transition hover:text-white"
               >
@@ -290,6 +435,8 @@ export default function WithdrawPage() {
               </Link>
 
               <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
                 href="/blackjack"
                 className="transition hover:text-white"
               >
@@ -297,6 +444,8 @@ export default function WithdrawPage() {
               </Link>
 
               <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
                 href="/case"
                 className="transition hover:text-white"
               >
@@ -308,6 +457,8 @@ export default function WithdrawPage() {
             <nav className="ml-auto mr-6 flex items-center gap-3">
 
               <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
                 href="/deposit"
                 className="rounded-lg border border-[#6C2BD9]/40 bg-[#15131D] px-4 py-2 text-xs font-black text-gray-300 transition hover:border-[#6C2BD9] hover:text-white"
               >
@@ -315,6 +466,8 @@ export default function WithdrawPage() {
               </Link>
 
               <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
                 href="/withdraw"
                 className="rounded-lg border border-[#F5C542] bg-[#F5C542] px-4 py-2 text-xs font-black text-black shadow-[0_0_18px_rgba(245,197,66,0.15)]"
               >
@@ -330,9 +483,7 @@ export default function WithdrawPage() {
               BALANCE
             </div>
 
-            <div className="font-black text-[#F5C542]">
-              💎 {balance.toLocaleString("en-US")}
-            </div>
+            <AnimatedBalance />
 
           </div>
         </div>
@@ -371,8 +522,8 @@ export default function WithdrawPage() {
             AVAILABLE BALANCE
           </div>
 
-          <div className="mt-2 text-4xl font-black text-[#F5C542] md:text-5xl">
-            💎 {balance.toLocaleString("en-US")}
+          <div className="mt-2 text-4xl md:text-5xl">
+            <AnimatedBalance />
           </div>
 
         </div>
@@ -529,9 +680,11 @@ export default function WithdrawPage() {
 
                     <button
                       type="button"
-                      onClick={() =>
-                        withdraw(item)
-                      }
+                      onMouseEnter={() => playSound("ui-hover")}
+                      onClick={() => {
+                        playSound("ui-click");
+                        withdraw(item);
+                      }}
                       disabled={
                         !canAfford ||
                         withdrawingId !== null

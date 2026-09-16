@@ -2,8 +2,177 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useEmeralds } from "../context/EmeraldContext";
+import { useSharedSoundEnabled } from "../lib/useSoundSettings";
+import AnimatedBalance from "../components/AnimatedBalance";
+
+
+type CaseSound =
+  | "ui-click"
+  | "ui-hover"
+  | "spin-start"
+  | "reel-tick"
+  | "spin-end"
+  | "win"
+  | "big-win"
+  | "error";
+
+type WebkitWindow = Window & {
+  webkitAudioContext?: typeof AudioContext;
+};
+
+function playCaseSound(name: CaseSound) {
+  if (typeof window === "undefined") return;
+
+  const AudioContextClass =
+    window.AudioContext || (window as WebkitWindow).webkitAudioContext;
+
+  if (!AudioContextClass) return;
+
+  const ctx = new AudioContextClass();
+  const now = ctx.currentTime + 0.008;
+
+  const master = ctx.createGain();
+  master.gain.value = 0.72;
+  master.connect(ctx.destination);
+
+  const tone = (
+    frequency: number,
+    start: number,
+    duration: number,
+    volume: number,
+    type: OscillatorType = "sine",
+    endFrequency?: number
+  ) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = type;
+    osc.frequency.setValueAtTime(frequency, start);
+
+    if (endFrequency) {
+      osc.frequency.exponentialRampToValueAtTime(
+        endFrequency,
+        start + duration
+      );
+    }
+
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(
+      volume,
+      start + Math.min(0.008, duration * 0.2)
+    );
+    gain.gain.exponentialRampToValueAtTime(
+      0.0001,
+      start + duration
+    );
+
+    osc.connect(gain);
+    gain.connect(master);
+    osc.start(start);
+    osc.stop(start + duration + 0.02);
+  };
+
+  const noise = (
+    start: number,
+    duration: number,
+    volume: number,
+    highpass: number,
+    lowpass = 12000
+  ) => {
+    const length = Math.max(
+      1,
+      Math.floor(ctx.sampleRate * duration)
+    );
+
+    const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+
+    for (let i = 0; i < length; i++) {
+      const envelope = Math.pow(1 - i / length, 1.8);
+      data[i] = (Math.random() * 2 - 1) * envelope;
+    }
+
+    const source = ctx.createBufferSource();
+    const hp = ctx.createBiquadFilter();
+    const lp = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+
+    source.buffer = buffer;
+    hp.type = "highpass";
+    hp.frequency.value = highpass;
+    lp.type = "lowpass";
+    lp.frequency.value = lowpass;
+
+    gain.gain.setValueAtTime(volume, start);
+    gain.gain.exponentialRampToValueAtTime(
+      0.0001,
+      start + duration
+    );
+
+    source.connect(hp);
+    hp.connect(lp);
+    lp.connect(gain);
+    gain.connect(master);
+    source.start(start);
+  };
+
+  switch (name) {
+    case "ui-click":
+      tone(1450, now, 0.032, 0.022, "triangle", 1050);
+      noise(now, 0.025, 0.012, 3500, 9000);
+      break;
+
+    case "ui-hover":
+      tone(1280, now, 0.035, 0.010, "triangle", 1510);
+      break;
+
+    case "spin-start":
+      tone(430, now, 0.075, 0.022, "triangle", 760);
+      tone(880, now + 0.045, 0.09, 0.018, "sine", 1280);
+      noise(now, 0.07, 0.016, 2100, 8500);
+      break;
+
+    case "reel-tick":
+      tone(1550, now, 0.026, 0.012, "triangle", 1180);
+      noise(now, 0.02, 0.006, 3900, 9000);
+      break;
+
+    case "spin-end":
+      tone(920, now, 0.075, 0.025, "triangle", 610);
+      tone(520, now + 0.055, 0.11, 0.02, "sine", 390);
+      noise(now, 0.045, 0.01, 1800, 6500);
+      break;
+
+    case "win":
+      tone(659.25, now, 0.13, 0.028);
+      tone(830.61, now + 0.065, 0.15, 0.031);
+      tone(987.77, now + 0.13, 0.18, 0.035);
+      tone(1318.51, now + 0.195, 0.22, 0.022, "triangle");
+      tone(1975.53, now + 0.21, 0.14, 0.012);
+      break;
+
+    case "big-win":
+      tone(523.25, now, 0.16, 0.025);
+      tone(659.25, now + 0.07, 0.18, 0.03);
+      tone(783.99, now + 0.14, 0.2, 0.034);
+      tone(1046.5, now + 0.21, 0.24, 0.038);
+      tone(1318.51, now + 0.29, 0.3, 0.03, "triangle");
+      tone(2093, now + 0.34, 0.22, 0.018);
+      noise(now + 0.28, 0.09, 0.008, 3500, 10000);
+      break;
+
+    case "error":
+      tone(420, now, 0.075, 0.02, "square", 360);
+      tone(310, now + 0.07, 0.11, 0.018, "triangle", 270);
+      break;
+  }
+
+  window.setTimeout(() => {
+    void ctx.close();
+  }, 1000);
+}
 
 type CaseItem = {
   id: number;
@@ -103,8 +272,19 @@ export default function CasePage() {
   const [spinEnabled, setSpinEnabled] = useState(false);
   const [message, setMessage] = useState("");
   const [showWin, setShowWin] = useState(false);
+  const [soundEnabled] = useSharedSoundEnabled();
+
+  const playSound = useCallback(
+    (name: CaseSound) => {
+      if (!soundEnabled) return;
+      playCaseSound(name);
+    },
+    [soundEnabled]
+  );
 
   const reelRef = useRef<HTMLDivElement | null>(null);
+  const tickIntervalRef =
+    useRef<ReturnType<typeof setInterval> | null>(null);
 
   const spinTimeoutRef =
     useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -135,6 +315,9 @@ export default function CasePage() {
 
       if (messageTimeoutRef.current)
         clearTimeout(messageTimeoutRef.current);
+
+      if (tickIntervalRef.current)
+        clearInterval(tickIntervalRef.current);
     };
   }, []);
 
@@ -142,6 +325,7 @@ export default function CasePage() {
     if (opening) return;
 
     if (balance < CASE_PRICE) {
+      playSound("error");
       setMessage("Not enough Emeralds to open this case.");
 
       if (messageTimeoutRef.current) {
@@ -157,7 +341,12 @@ export default function CasePage() {
 
     const paid = removeEmeralds(CASE_PRICE);
 
-    if (!paid) return;
+    if (!paid) {
+      playSound("error");
+      return;
+    }
+
+    playSound("spin-start");
 
     if (spinTimeoutRef.current)
       clearTimeout(spinTimeoutRef.current);
@@ -170,6 +359,9 @@ export default function CasePage() {
 
     if (messageTimeoutRef.current)
       clearTimeout(messageTimeoutRef.current);
+
+    if (tickIntervalRef.current)
+      clearInterval(tickIntervalRef.current);
 
     setOpening(true);
     setWinner(null);
@@ -216,6 +408,18 @@ export default function CasePage() {
 
         setSpinEnabled(true);
         setOffset(-(target + randomStop));
+
+        // Light reel ticks: quick at first, kept subtle so the spin is not noisy.
+        let tickCount = 0;
+        tickIntervalRef.current = setInterval(() => {
+          tickCount += 1;
+          if (tickCount <= 20) {
+            playSound("reel-tick");
+          } else if (tickIntervalRef.current) {
+            clearInterval(tickIntervalRef.current);
+            tickIntervalRef.current = null;
+          }
+        }, 115);
       });
     });
 
@@ -226,6 +430,13 @@ export default function CasePage() {
         skinin oma value.
       */
       const payout = selectedWinner.value;
+
+      if (tickIntervalRef.current) {
+        clearInterval(tickIntervalRef.current);
+        tickIntervalRef.current = null;
+      }
+
+      playSound("spin-end");
 
       setWinner(selectedWinner);
       addEmeralds(payout);
@@ -239,6 +450,12 @@ export default function CasePage() {
 
       showWinTimeoutRef.current = setTimeout(() => {
         setShowWin(true);
+
+        if (selectedWinner.value >= 5000) {
+          playSound("big-win");
+        } else {
+          playSound("win");
+        }
       }, 250);
 
       hideWinTimeoutRef.current = setTimeout(() => {
@@ -348,6 +565,8 @@ export default function CasePage() {
         <div className="mx-auto flex max-w-6xl items-center px-5 py-4">
 
           <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
             href="/"
             className="flex shrink-0 items-center"
           >
@@ -366,6 +585,8 @@ export default function CasePage() {
             <nav className="ml-10 flex items-center gap-6 text-sm text-gray-500">
 
               <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
                 href="/"
                 className="transition hover:text-white"
               >
@@ -373,6 +594,8 @@ export default function CasePage() {
               </Link>
 
               <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
                 href="/joker-poker"
                 className="transition hover:text-white"
               >
@@ -380,6 +603,8 @@ export default function CasePage() {
               </Link>
 
               <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
                 href="/blackjack"
                 className="transition hover:text-white"
               >
@@ -387,6 +612,8 @@ export default function CasePage() {
               </Link>
 
               <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
                 href="/case"
                 className="font-bold text-white"
               >
@@ -398,6 +625,8 @@ export default function CasePage() {
             <nav className="ml-auto mr-6 flex items-center gap-3">
 
               <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
                 href="/deposit"
                 className="rounded-lg border border-[#6C2BD9]/40 bg-[#15131D] px-4 py-2 text-xs font-black text-gray-300 transition hover:border-[#6C2BD9] hover:text-white"
               >
@@ -405,6 +634,8 @@ export default function CasePage() {
               </Link>
 
               <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
                 href="/withdraw"
                 className="rounded-lg border border-[#F5C542]/30 bg-[#15131D] px-4 py-2 text-xs font-black text-[#F5C542] transition hover:border-[#F5C542]"
               >
@@ -420,9 +651,7 @@ export default function CasePage() {
               BALANCE
             </div>
 
-            <div className="font-black text-[#F5C542]">
-              💎 {balance.toLocaleString("en-US")}
-            </div>
+            <AnimatedBalance />
 
           </div>
         </div>
@@ -556,7 +785,8 @@ export default function CasePage() {
 
           <button
             type="button"
-            onClick={openCase}
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => { playSound("ui-click"); openCase(); }}
             disabled={
               opening ||
               balance < CASE_PRICE

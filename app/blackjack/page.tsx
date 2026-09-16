@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useEmeralds } from "../context/EmeraldContext";
+import { useSharedSoundEnabled } from "../lib/useSoundSettings";
+import AnimatedBalance from "../components/AnimatedBalance";
 
 type Suit = "♠" | "♥" | "♦" | "♣";
 
@@ -61,6 +63,171 @@ function shuffle(cards: Card[]): Card[] {
   return deck;
 }
 
+
+type SoundName =
+  | "ui-click"
+  | "ui-hover"
+  | "card-flip"
+  | "card-deal"
+  | "chip-bet"
+  | "win"
+  | "loss";
+
+type WebkitWindow = Window & {
+  webkitAudioContext?: typeof AudioContext;
+};
+
+function playSynthSound(name: SoundName) {
+  if (typeof window === "undefined") return;
+
+  const AudioContextClass =
+    window.AudioContext || (window as WebkitWindow).webkitAudioContext;
+
+  if (!AudioContextClass) return;
+
+  const ctx = new AudioContextClass();
+  const now = ctx.currentTime + 0.008;
+
+  const master = ctx.createGain();
+  master.gain.value = 0.72;
+  master.connect(ctx.destination);
+
+  const tone = (
+    frequency: number,
+    start: number,
+    duration: number,
+    volume: number,
+    type: OscillatorType = "sine",
+    endFrequency?: number
+  ) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = type;
+    osc.frequency.setValueAtTime(frequency, start);
+
+    if (endFrequency) {
+      osc.frequency.exponentialRampToValueAtTime(
+        endFrequency,
+        start + duration
+      );
+    }
+
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(
+      volume,
+      start + Math.min(0.008, duration * 0.2)
+    );
+    gain.gain.exponentialRampToValueAtTime(
+      0.0001,
+      start + duration
+    );
+
+    osc.connect(gain);
+    gain.connect(master);
+    osc.start(start);
+    osc.stop(start + duration + 0.02);
+  };
+
+  const noise = (
+    start: number,
+    duration: number,
+    volume: number,
+    highpass: number,
+    lowpass = 12000
+  ) => {
+    const length = Math.max(
+      1,
+      Math.floor(ctx.sampleRate * duration)
+    );
+    const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+
+    for (let i = 0; i < length; i++) {
+      const envelope = Math.pow(1 - i / length, 1.8);
+      data[i] = (Math.random() * 2 - 1) * envelope;
+    }
+
+    const source = ctx.createBufferSource();
+    const hp = ctx.createBiquadFilter();
+    const lp = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+
+    source.buffer = buffer;
+
+    hp.type = "highpass";
+    hp.frequency.value = highpass;
+
+    lp.type = "lowpass";
+    lp.frequency.value = lowpass;
+
+    gain.gain.setValueAtTime(volume, start);
+    gain.gain.exponentialRampToValueAtTime(
+      0.0001,
+      start + duration
+    );
+
+    source.connect(hp);
+    hp.connect(lp);
+    lp.connect(gain);
+    gain.connect(master);
+    source.start(start);
+  };
+
+  switch (name) {
+    // Tight premium UI tap: bright transient, almost no tail.
+    case "ui-click":
+      tone(1450, now, 0.032, 0.022, "triangle", 1050);
+      noise(now, 0.025, 0.012, 3500, 9000);
+      break;
+
+    // Very light futuristic hover tick matching the CS ACE UI.
+    case "ui-hover":
+      tone(1280, now, 0.035, 0.010, "triangle", 1510);
+      break;
+
+    // Soft card "swish" + tiny snap at the end.
+    case "card-flip":
+      noise(now, 0.075, 0.038, 1450, 7200);
+      tone(760, now + 0.045, 0.045, 0.012, "triangle", 520);
+      noise(now + 0.062, 0.026, 0.018, 2600, 9000);
+      break;
+
+    // Short paper/table contact, deliberately not bass-heavy.
+    case "card-deal":
+      noise(now, 0.058, 0.046, 520, 5200);
+      tone(230, now + 0.018, 0.042, 0.012, "triangle", 170);
+      noise(now + 0.038, 0.025, 0.014, 1800, 7000);
+      break;
+
+    // Small metallic poker-chip contact.
+    case "chip-bet":
+      tone(1580, now, 0.055, 0.026, "sine", 1390);
+      tone(2310, now + 0.012, 0.06, 0.016, "sine", 1980);
+      noise(now, 0.026, 0.012, 3200, 10000);
+      break;
+
+    // Compact premium win chord: bright, clean and restrained.
+    case "win":
+      tone(659.25, now, 0.13, 0.028);
+      tone(830.61, now + 0.065, 0.15, 0.031);
+      tone(987.77, now + 0.13, 0.18, 0.035);
+      tone(1318.51, now + 0.195, 0.22, 0.022, "triangle");
+      tone(1975.53, now + 0.21, 0.14, 0.012);
+      break;
+
+    // Neutral downward cue, no dramatic "failure" sound.
+    case "loss":
+      tone(392, now, 0.105, 0.018, "sine", 349.23);
+      tone(293.66, now + 0.07, 0.15, 0.015, "sine", 261.63);
+      break;
+  }
+
+  window.setTimeout(() => {
+    void ctx.close();
+  }, 900);
+}
+
 function handValue(cards: Card[]): number {
   let total = 0;
   let aces = 0;
@@ -88,13 +255,15 @@ function isBlackjack(cards: Card[]): boolean {
 function PlayingCard({
   card,
   hidden = false,
+  animationClass = "card-enter",
 }: {
   card: Card;
   hidden?: boolean;
+  animationClass?: string;
 }) {
   if (hidden) {
     return (
-      <div className="card-enter relative h-28 w-[68px] shrink-0 rounded-xl border-2 border-[#6C2BD9] bg-[#21113d] shadow-[0_10px_30px_rgba(0,0,0,0.55)] sm:h-32 sm:w-[80px]">
+      <div className={`${animationClass} relative h-28 w-[68px] shrink-0 rounded-xl border-2 border-[#6C2BD9] bg-[#21113d] shadow-[0_10px_30px_rgba(0,0,0,0.55)] sm:h-32 sm:w-[80px]`}>
         <div className="absolute inset-2 rounded-lg border border-[#F5C542]/30 bg-[radial-gradient(circle_at_center,#6C2BD9,#24103f,#10091d)]" />
 
         <div className="absolute inset-[11px] rounded-md border border-white/5" />
@@ -120,7 +289,7 @@ function PlayingCard({
     : "text-black";
 
   return (
-    <div className="card-enter relative h-28 w-[68px] shrink-0 overflow-hidden rounded-xl border-2 border-white bg-white shadow-[0_10px_30px_rgba(0,0,0,0.55)] sm:h-32 sm:w-[80px]">
+    <div className={`${animationClass} relative h-28 w-[68px] shrink-0 overflow-hidden rounded-xl border-2 border-white bg-white shadow-[0_10px_30px_rgba(0,0,0,0.55)] sm:h-32 sm:w-[80px]`}>
 
       {/* VASEN YLÄKULMA */}
       <div
@@ -169,8 +338,22 @@ export default function BlackjackPage() {
   const [showWinAnimation, setShowWinAnimation] =
     useState(false);
 
-  function startGame() {
-    if (playing) return;
+  const [actionBusy, setActionBusy] = useState(false);
+  const [dealerHoleRevealed, setDealerHoleRevealed] = useState(false);
+  const [dealerHoleFlipping, setDealerHoleFlipping] = useState(false);
+  const [playerDealVisible, setPlayerDealVisible] = useState(0);
+  const [dealerDealVisible, setDealerDealVisible] = useState(0);
+
+  const wait = (ms: number) =>
+    new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+  const [soundEnabled] = useSharedSoundEnabled();
+  const playSound = useCallback((name: SoundName) => {
+    if (soundEnabled) playSynthSound(name);
+  }, [soundEnabled]);
+
+  async function startGame() {
+    if (playing || actionBusy) return;
 
     if (bet <= 0 || bet > balance) {
       setResult("Not enough Emeralds");
@@ -178,99 +361,107 @@ export default function BlackjackPage() {
     }
 
     const success = removeEmeralds(bet);
-
     if (!success) {
       setResult("Not enough Emeralds");
       return;
     }
 
     const shuffled = shuffle(makeDeck());
+    const player = [shuffled[0], shuffled[2]];
+    const dealer = [shuffled[1], shuffled[3]];
+    const remaining = shuffled.slice(4);
 
-    const player = [
-      shuffled[0],
-      shuffled[2],
-    ];
-
-    const dealer = [
-      shuffled[1],
-      shuffled[3],
-    ];
-
+    playSound("chip-bet");
+    setActionBusy(true);
+    setDealerHoleRevealed(false);
+    setDealerHoleFlipping(false);
+    setPlayerDealVisible(0);
+    setDealerDealVisible(0);
     setPlayerCards(player);
     setDealerCards(dealer);
-    setDeck(shuffled.slice(4));
+    setDeck(remaining);
     setPlaying(true);
     setResult("");
     setWin(0);
     setShowWinAnimation(false);
 
+    // Casino-style initial deal: player -> dealer -> player -> dealer.
+    await wait(90);
+    setPlayerDealVisible(1); playSound("card-deal");
+    await wait(145);
+    setDealerDealVisible(1); playSound("card-deal");
+    await wait(145);
+    setPlayerDealVisible(2); playSound("card-deal");
+    await wait(145);
+    setDealerDealVisible(2); playSound("card-deal");
+    await wait(210);
+
+    setActionBusy(false);
+
     if (isBlackjack(player)) {
-      finishRound(
-        player,
-        dealer,
-        bet,
-        shuffled.slice(4)
-      );
+      await revealDealerHole();
+      finishRound(player, dealer, bet, remaining);
     }
   }
 
-  function hit() {
-    if (!playing || deck.length === 0) return;
+  async function hit() {
+    if (!playing || actionBusy || deck.length === 0) return;
 
+    setActionBusy(true);
     const card = deck[0];
-
-    const newPlayerCards = [
-      ...playerCards,
-      card,
-    ];
-
+    const newPlayerCards = [...playerCards, card];
     const newDeck = deck.slice(1);
 
     setPlayerCards(newPlayerCards);
     setDeck(newDeck);
+    playSound("card-deal");
+    await wait(260);
+    setActionBusy(false);
 
     if (handValue(newPlayerCards) > 21) {
-      finishRound(
-        newPlayerCards,
-        dealerCards,
-        bet,
-        newDeck
-      );
+      finishRound(newPlayerCards, dealerCards, bet, newDeck);
     }
   }
 
-  function stand() {
-    if (!playing) return;
+  async function revealDealerHole() {
+    if (dealerHoleRevealed) return;
+
+    setDealerHoleFlipping(true);
+    playSound("card-flip");
+    await wait(150);
+    setDealerHoleRevealed(true);
+    await wait(170);
+    setDealerHoleFlipping(false);
+  }
+
+  async function stand() {
+    if (!playing || actionBusy) return;
+
+    setActionBusy(true);
+    await revealDealerHole();
 
     let newDealerCards = [...dealerCards];
     let newDeck = [...deck];
 
-    while (
-      handValue(newDealerCards) < 17 &&
-      newDeck.length > 0
-    ) {
-      newDealerCards = [
-        ...newDealerCards,
-        newDeck[0],
-      ];
-
+    while (handValue(newDealerCards) < 17 && newDeck.length > 0) {
+      const nextCard = newDeck[0];
+      newDealerCards = [...newDealerCards, nextCard];
       newDeck = newDeck.slice(1);
+
+      setDealerCards(newDealerCards);
+      setDeck(newDeck);
+      playSound("card-deal");
+      await wait(300);
     }
 
-    setDealerCards(newDealerCards);
-    setDeck(newDeck);
-
-    finishRound(
-      playerCards,
-      newDealerCards,
-      bet,
-      newDeck
-    );
+    setActionBusy(false);
+    finishRound(playerCards, newDealerCards, bet, newDeck);
   }
 
-  function doubleDown() {
+  async function doubleDown() {
     if (
       !playing ||
+      actionBusy ||
       deck.length === 0 ||
       playerCards.length !== 2
     ) {
@@ -278,68 +469,50 @@ export default function BlackjackPage() {
     }
 
     if (balance < bet) {
-      setResult(
-        "Not enough Emeralds to double"
-      );
+      setResult("Not enough Emeralds to double");
       return;
     }
 
     const success = removeEmeralds(bet);
-
     if (!success) return;
 
-    const newBet = bet * 2;
+    setActionBusy(true);
 
+    const newBet = bet * 2;
     setBet(newBet);
 
     const card = deck[0];
-
-    const newPlayerCards = [
-      ...playerCards,
-      card,
-    ];
-
-    const newDeck = deck.slice(1);
+    const newPlayerCards = [...playerCards, card];
+    let remainingDeck = deck.slice(1);
 
     setPlayerCards(newPlayerCards);
-    setDeck(newDeck);
+    setDeck(remainingDeck);
+    playSound("card-deal");
+    await wait(280);
 
     if (handValue(newPlayerCards) > 21) {
-      finishRound(
-        newPlayerCards,
-        dealerCards,
-        newBet,
-        newDeck
-      );
-
+      setActionBusy(false);
+      finishRound(newPlayerCards, dealerCards, newBet, remainingDeck);
       return;
     }
 
+    await revealDealerHole();
+
     let newDealerCards = [...dealerCards];
-    let remainingDeck = [...newDeck];
 
-    while (
-      handValue(newDealerCards) < 17 &&
-      remainingDeck.length > 0
-    ) {
-      newDealerCards = [
-        ...newDealerCards,
-        remainingDeck[0],
-      ];
+    while (handValue(newDealerCards) < 17 && remainingDeck.length > 0) {
+      const nextCard = remainingDeck[0];
+      newDealerCards = [...newDealerCards, nextCard];
+      remainingDeck = remainingDeck.slice(1);
 
-      remainingDeck =
-        remainingDeck.slice(1);
+      setDealerCards(newDealerCards);
+      setDeck(remainingDeck);
+      playSound("card-deal");
+      await wait(300);
     }
 
-    setDealerCards(newDealerCards);
-    setDeck(remainingDeck);
-
-    finishRound(
-      newPlayerCards,
-      newDealerCards,
-      newBet,
-      remainingDeck
-    );
+    setActionBusy(false);
+    finishRound(newPlayerCards, newDealerCards, newBet, remainingDeck);
   }
 
   function finishRound(
@@ -383,11 +556,12 @@ export default function BlackjackPage() {
       addEmeralds(payout);
 
       if (message !== "PUSH") {
+        playSound("win");
         setShowWinAnimation(true);
 
         setTimeout(() => {
           setShowWinAnimation(false);
-        }, 2800);
+        }, 1900);
       }
     }
   }
@@ -400,6 +574,11 @@ export default function BlackjackPage() {
     setResult("");
     setWin(0);
     setShowWinAnimation(false);
+    setActionBusy(false);
+    setDealerHoleRevealed(false);
+    setDealerHoleFlipping(false);
+    setPlayerDealVisible(0);
+    setDealerDealVisible(0);
   }
 
   function handleBetInput(
@@ -423,63 +602,45 @@ export default function BlackjackPage() {
   return (
     <main className="min-h-screen bg-[#0B0B0F] text-[#F2F2F2]">
 
-      {/* WIN SCREEN */}
+      {/* WIN ANIMATION */}
       {showWinAnimation && win > 0 && (
-        <div className="win-screen pointer-events-none fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-[#08080C]/90 backdrop-blur-md">
+        <div className="win-screen pointer-events-none fixed inset-0 z-[100] flex items-center justify-center overflow-hidden">
 
-          <div className="win-glow absolute left-1/2 top-1/2 h-[650px] w-[650px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#20C997]/10 blur-[120px]" />
+          <div className="win-backdrop absolute inset-0 bg-[#08080C]/72 backdrop-blur-[3px]" />
 
-          <div className="win-ring absolute left-1/2 top-1/2 h-[200px] w-[200px] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#20C997]" />
+          <div className="win-glow absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#20C997]/15 blur-[95px]" />
 
-          <span className="particle particle-1">
-            💎
-          </span>
+          <div className="win-ring win-ring-1 absolute left-1/2 top-1/2 h-[180px] w-[180px] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#20C997]/80" />
+          <div className="win-ring win-ring-2 absolute left-1/2 top-1/2 h-[180px] w-[180px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#F5C542]/70" />
 
-          <span className="particle particle-2">
-            ✦
-          </span>
-
-          <span className="particle particle-3">
-            💎
-          </span>
-
-          <span className="particle particle-4">
-            ✦
-          </span>
-
-          <span className="particle particle-5">
-            💎
-          </span>
-
-          <span className="particle particle-6">
-            ✦
-          </span>
+          <span className="particle particle-1">💎</span>
+          <span className="particle particle-2">✦</span>
+          <span className="particle particle-3">💎</span>
+          <span className="particle particle-4">✦</span>
+          <span className="particle particle-5">💎</span>
+          <span className="particle particle-6">✦</span>
 
           <div className="win-content relative z-10 text-center">
-
-            <div className="text-[10px] font-black uppercase tracking-[0.5em] text-[#6C2BD9]">
+            <div className="text-[9px] font-black uppercase tracking-[0.5em] text-[#6C2BD9]">
               CS ACE
             </div>
 
-            <div className="mt-2 text-[12px] font-black uppercase tracking-[0.4em] text-[#20C997]">
-              ROUND WON
+            <div className="win-title mt-2 text-[12px] font-black uppercase tracking-[0.42em] text-[#20C997]">
+              WIN
             </div>
 
-            <div className="mt-5 text-5xl font-black text-white md:text-7xl">
+            <div className="win-result mt-3 text-4xl font-black uppercase text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.18)] md:text-6xl">
               {result}
             </div>
 
-            <div className="mx-auto mt-6 w-fit rounded-2xl border border-[#F5C542]/40 bg-[#15131D] px-10 py-5 shadow-[0_0_50px_rgba(245,197,66,0.12)]">
-
-              <div className="text-[9px] font-black uppercase tracking-[0.3em] text-gray-500">
+            <div className="win-payout mx-auto mt-5 w-fit rounded-2xl border border-[#F5C542]/35 bg-[#15131D]/95 px-9 py-4 shadow-[0_0_45px_rgba(245,197,66,0.14)]">
+              <div className="text-[8px] font-black uppercase tracking-[0.32em] text-gray-500">
                 PAYOUT
               </div>
 
-              <div className="mt-1 text-4xl font-black text-[#F5C542]">
-                +💎{" "}
-                {win.toLocaleString("en-US")}
+              <div className="mt-1 text-3xl font-black text-[#F5C542] md:text-4xl">
+                +💎 {win.toLocaleString("en-US")}
               </div>
-
             </div>
           </div>
         </div>
@@ -491,6 +652,8 @@ export default function BlackjackPage() {
         <div className="mx-auto flex max-w-6xl items-center px-5 py-4">
 
           <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
             href="/"
             className="flex shrink-0 items-center"
           >
@@ -509,6 +672,8 @@ export default function BlackjackPage() {
             <nav className="ml-10 flex items-center gap-6 text-sm text-gray-500">
 
               <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
                 href="/"
                 className="transition hover:text-white"
               >
@@ -516,6 +681,8 @@ export default function BlackjackPage() {
               </Link>
 
               <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
                 href="/joker-poker"
                 className="transition hover:text-white"
               >
@@ -523,6 +690,8 @@ export default function BlackjackPage() {
               </Link>
 
               <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
                 href="/blackjack"
                 className="font-bold text-white"
               >
@@ -530,6 +699,8 @@ export default function BlackjackPage() {
               </Link>
 
               <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
                 href="/case"
                 className="transition hover:text-white"
               >
@@ -541,6 +712,8 @@ export default function BlackjackPage() {
             <nav className="ml-auto mr-6 flex items-center gap-3">
 
               <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
                 href="/deposit"
                 className="rounded-lg border border-[#6C2BD9]/40 bg-[#15131D] px-4 py-2 text-xs font-black text-gray-300 transition hover:border-[#6C2BD9] hover:text-white"
               >
@@ -548,6 +721,8 @@ export default function BlackjackPage() {
               </Link>
 
               <Link
+            onMouseEnter={() => playSound("ui-hover")}
+            onClick={() => playSound("ui-click")}
                 href="/withdraw"
                 className="rounded-lg border border-[#F5C542]/30 bg-[#15131D] px-4 py-2 text-xs font-black text-[#F5C542] transition hover:border-[#F5C542]"
               >
@@ -563,10 +738,7 @@ export default function BlackjackPage() {
               BALANCE
             </div>
 
-            <div className="font-black text-[#F5C542]">
-              💎{" "}
-              {balance.toLocaleString("en-US")}
-            </div>
+            <AnimatedBalance />
 
           </div>
         </div>
@@ -624,18 +796,37 @@ export default function BlackjackPage() {
                     READY
                   </div>
                 ) : (
-                  dealerCards.map(
-                    (card, index) => (
-                      <PlayingCard
+                  dealerCards.map((card, index) => {
+                    const visible =
+                      index >= 2 || index < dealerDealVisible;
+
+                    return (
+                      <div
                         key={index}
-                        card={card}
-                        hidden={
-                          playing &&
-                          index === 1
-                        }
-                      />
-                    )
-                  )
+                        className="h-28 w-[68px] shrink-0 sm:h-32 sm:w-[80px]"
+                      >
+                        {visible && (
+                          <PlayingCard
+                            card={card}
+                            hidden={
+                              playing &&
+                              index === 1 &&
+                              !dealerHoleRevealed
+                            }
+                            animationClass={
+                              index === 1 && dealerHoleFlipping
+                                ? dealerHoleRevealed
+                                  ? "card-flip-in"
+                                  : "card-flip-out"
+                                : index >= 2
+                                ? "card-slide-dealer"
+                                : "card-deal-table"
+                            }
+                          />
+                        )}
+                      </div>
+                    );
+                  })
                 )}
 
               </div>
@@ -699,14 +890,28 @@ export default function BlackjackPage() {
                     READY
                   </div>
                 ) : (
-                  playerCards.map(
-                    (card, index) => (
-                      <PlayingCard
+                  playerCards.map((card, index) => {
+                    const visible =
+                      index >= 2 || index < playerDealVisible;
+
+                    return (
+                      <div
                         key={index}
-                        card={card}
-                      />
-                    )
-                  )
+                        className="h-28 w-[68px] shrink-0 sm:h-32 sm:w-[80px]"
+                      >
+                        {visible && (
+                          <PlayingCard
+                            card={card}
+                            animationClass={
+                              index >= 2
+                                ? "card-slide-player"
+                                : "card-deal-table"
+                            }
+                          />
+                        )}
+                      </div>
+                    );
+                  })
                 )}
 
               </div>
@@ -813,14 +1018,16 @@ export default function BlackjackPage() {
                       <button
                         key={amount}
                         type="button"
-                        onClick={() =>
+                        onMouseEnter={() => playSound("ui-hover")}
+                        onClick={() => {
+                          playSound("ui-click");
                           setBet(
                             Math.min(
                               amount,
                               balance
                             )
-                          )
-                        }
+                          );
+                        }}
                         disabled={
                           balance <= 0
                         }
@@ -835,9 +1042,11 @@ export default function BlackjackPage() {
 
                   <button
                     type="button"
-                    onClick={() =>
-                      setBet(balance)
-                    }
+                    onMouseEnter={() => playSound("ui-hover")}
+                    onClick={() => {
+                      playSound("ui-click");
+                      setBet(balance);
+                    }}
                     disabled={balance <= 0}
                     className="rounded-lg border border-[#F5C542]/30 bg-[#15131D] px-3 py-1.5 text-[10px] font-black text-[#F5C542] transition hover:border-[#F5C542] disabled:opacity-30"
                   >
@@ -891,7 +1100,8 @@ export default function BlackjackPage() {
                 {!playing && !result && (
                   <button
                     type="button"
-                    onClick={startGame}
+                    onMouseEnter={() => playSound("ui-hover")}
+                    onClick={() => { playSound("ui-click"); void startGame(); }}
                     disabled={
                       bet <= 0 ||
                       bet > balance
@@ -909,7 +1119,9 @@ export default function BlackjackPage() {
                   <>
                     <button
                       type="button"
-                      onClick={hit}
+                      onMouseEnter={() => playSound("ui-hover")}
+                    onClick={() => { playSound("ui-click"); void hit(); }}
+                      disabled={actionBusy}
                       className="h-[48px] min-w-[105px] rounded-xl bg-[#6C2BD9] px-6 text-sm font-black text-white shadow-[0_0_20px_rgba(108,43,217,0.18)] transition hover:bg-[#7d3be8]"
                     >
                       HIT
@@ -917,7 +1129,9 @@ export default function BlackjackPage() {
 
                     <button
                       type="button"
-                      onClick={stand}
+                      onMouseEnter={() => playSound("ui-hover")}
+                    onClick={() => { playSound("ui-click"); void stand(); }}
+                      disabled={actionBusy}
                       className="h-[48px] min-w-[105px] rounded-xl bg-[#F5C542] px-6 text-sm font-black text-black shadow-[0_0_20px_rgba(245,197,66,0.15)] transition hover:bg-[#ffd45e]"
                     >
                       STAND
@@ -925,8 +1139,9 @@ export default function BlackjackPage() {
 
                     <button
                       type="button"
-                      onClick={doubleDown}
-                      disabled={
+                      onMouseEnter={() => playSound("ui-hover")}
+                    onClick={() => { playSound("ui-click"); void doubleDown(); }}
+                      disabled={actionBusy || 
                         playerCards.length !==
                           2 ||
                         balance < bet
@@ -941,7 +1156,8 @@ export default function BlackjackPage() {
                 {!playing && result && (
                   <button
                     type="button"
-                    onClick={newGame}
+                    onMouseEnter={() => playSound("ui-hover")}
+                    onClick={() => { playSound("ui-click"); newGame(); }}
                     className="h-[48px] min-w-[180px] rounded-xl bg-[#6C2BD9] px-10 text-sm font-black text-white shadow-[0_0_30px_rgba(108,43,217,0.20)] transition hover:bg-[#7d3be8]"
                   >
                     NEW GAME
@@ -992,75 +1208,169 @@ export default function BlackjackPage() {
             both;
         }
 
+
+        .card-deal-table {
+          animation: cardDealTable 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
+          transform-origin: center;
+        }
+
+        .card-slide-player {
+          animation: cardSlidePlayer 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        .card-slide-dealer {
+          animation: cardSlideDealer 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        .card-flip-out {
+          animation: cardFlipOut 0.15s ease-in both;
+          transform-origin: center;
+          backface-visibility: hidden;
+        }
+
+        .card-flip-in {
+          animation: cardFlipIn 0.17s ease-out both;
+          transform-origin: center;
+          backface-visibility: hidden;
+        }
+
         .win-screen {
-          animation: screenIn 0.25s ease-out
-            both;
+          animation: winScreen 0.16s ease-out both;
+        }
+
+        .win-backdrop {
+          animation: winBackdrop 0.18s ease-out both;
         }
 
         .win-content {
-          animation: winContent 0.65s
-            cubic-bezier(0.16, 1, 0.3, 1)
-            both;
+          animation: winContent 0.46s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        .win-title {
+          animation: winTitle 0.42s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both;
+        }
+
+        .win-result {
+          animation: winResult 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
+        }
+
+        .win-payout {
+          animation: winPayout 0.48s cubic-bezier(0.16, 1, 0.3, 1) 0.16s both;
         }
 
         .win-glow {
-          animation: glowReveal 1.5s ease-out
-            both;
+          animation: glowReveal 0.85s ease-out both;
         }
 
-        .win-ring {
-          animation: ringExpand 1.2s ease-out
-            both;
+        .win-ring-1 {
+          animation: ringExpand 0.8s ease-out both;
+        }
+
+        .win-ring-2 {
+          animation: ringExpand 0.9s ease-out 0.12s both;
         }
 
         .particle {
           position: absolute;
           left: 50%;
           top: 50%;
-          font-size: 24px;
+          font-size: 22px;
           opacity: 0;
         }
 
         .particle-1 {
-          --x: -300px;
-          --y: -180px;
-          animation: particleMove 1.2s
-            ease-out 0.1s both;
+          --x: -250px;
+          --y: -145px;
+          animation: particleMove 0.9s ease-out 0.05s both;
         }
 
         .particle-2 {
-          --x: 300px;
-          --y: -190px;
-          animation: particleMove 1.1s
-            ease-out 0.15s both;
+          --x: 250px;
+          --y: -150px;
+          animation: particleMove 0.85s ease-out 0.1s both;
         }
 
         .particle-3 {
-          --x: -350px;
-          --y: 70px;
-          animation: particleMove 1.25s
-            ease-out 0.05s both;
+          --x: -285px;
+          --y: 65px;
+          animation: particleMove 0.95s ease-out 0.03s both;
         }
 
         .particle-4 {
-          --x: 350px;
-          --y: 70px;
-          animation: particleMove 1.15s
-            ease-out 0.2s both;
+          --x: 285px;
+          --y: 65px;
+          animation: particleMove 0.9s ease-out 0.13s both;
         }
 
         .particle-5 {
-          --x: -230px;
-          --y: 240px;
-          animation: particleMove 1.3s
-            ease-out 0.12s both;
+          --x: -185px;
+          --y: 190px;
+          animation: particleMove 1s ease-out 0.08s both;
         }
 
         .particle-6 {
-          --x: 240px;
-          --y: 240px;
-          animation: particleMove 1.2s
-            ease-out 0.08s both;
+          --x: 190px;
+          --y: 190px;
+          animation: particleMove 0.95s ease-out 0.06s both;
+        }
+
+        @keyframes cardDealTable {
+          0% {
+            opacity: 0;
+            transform: translate(95px, -58px) rotate(7deg) scale(0.82);
+          }
+          72% {
+            opacity: 1;
+            transform: translate(-3px, 2px) rotate(-1deg) scale(1.025);
+          }
+          100% {
+            opacity: 1;
+            transform: translate(0, 0) rotate(0deg) scale(1);
+          }
+        }
+
+        @keyframes cardSlidePlayer {
+          0% {
+            opacity: 0;
+            transform: translate(85px, -38px) rotate(6deg) scale(0.84);
+          }
+          100% {
+            opacity: 1;
+            transform: translate(0, 0) rotate(0deg) scale(1);
+          }
+        }
+
+        @keyframes cardSlideDealer {
+          0% {
+            opacity: 0;
+            transform: translate(85px, 35px) rotate(6deg) scale(0.84);
+          }
+          100% {
+            opacity: 1;
+            transform: translate(0, 0) rotate(0deg) scale(1);
+          }
+        }
+
+        @keyframes cardFlipOut {
+          from {
+            opacity: 1;
+            transform: perspective(700px) rotateY(0deg);
+          }
+          to {
+            opacity: 0.9;
+            transform: perspective(700px) rotateY(90deg);
+          }
+        }
+
+        @keyframes cardFlipIn {
+          from {
+            opacity: 0.9;
+            transform: perspective(700px) rotateY(-90deg);
+          }
+          to {
+            opacity: 1;
+            transform: perspective(700px) rotateY(0deg);
+          }
         }
 
         @keyframes cardEnter {
@@ -1077,75 +1387,123 @@ export default function BlackjackPage() {
           }
         }
 
-        @keyframes screenIn {
+        @keyframes winScreen {
           from {
             opacity: 0;
           }
+          to {
+            opacity: 1;
+          }
+        }
 
+        @keyframes winBackdrop {
+          from {
+            opacity: 0;
+          }
           to {
             opacity: 1;
           }
         }
 
         @keyframes winContent {
+          0% {
+            opacity: 0;
+            transform: translateY(14px) scale(0.84);
+          }
+          70% {
+            opacity: 1;
+            transform: translateY(-2px) scale(1.035);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        @keyframes winTitle {
           from {
             opacity: 0;
-            transform: scale(0.8);
+            transform: translateY(8px) scale(0.85);
+            letter-spacing: 0.2em;
           }
-
           to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            letter-spacing: 0.42em;
+          }
+        }
+
+        @keyframes winResult {
+          0% {
+            opacity: 0;
+            transform: scale(0.72);
+          }
+          70% {
+            opacity: 1;
+            transform: scale(1.06);
+          }
+          100% {
             opacity: 1;
             transform: scale(1);
           }
         }
 
-        @keyframes glowReveal {
-          from {
+        @keyframes winPayout {
+          0% {
             opacity: 0;
-            transform: translate(-50%, -50%)
-              scale(0.25);
+            transform: translateY(14px) scale(0.9);
           }
-
-          to {
+          70% {
             opacity: 1;
-            transform: translate(-50%, -50%)
-              scale(1.1);
+            transform: translateY(-2px) scale(1.03);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        @keyframes glowReveal {
+          0% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.35);
+          }
+          45% {
+            opacity: 1;
+          }
+          100% {
+            opacity: 0.55;
+            transform: translate(-50%, -50%) scale(1.08);
           }
         }
 
         @keyframes ringExpand {
           0% {
-            opacity: 1;
-            transform: translate(-50%, -50%)
-              scale(0.15);
+            opacity: 0.9;
+            transform: translate(-50%, -50%) scale(0.2);
           }
-
           100% {
             opacity: 0;
-            transform: translate(-50%, -50%)
-              scale(4);
+            transform: translate(-50%, -50%) scale(3.2);
           }
         }
 
         @keyframes particleMove {
           0% {
             opacity: 0;
-            transform: translate(-50%, -50%)
-              scale(0.4);
+            transform: translate(-50%, -50%) scale(0.35);
           }
-
-          15% {
+          18% {
             opacity: 1;
           }
-
           100% {
             opacity: 0;
             transform: translate(
                 calc(-50% + var(--x)),
                 calc(-50% + var(--y))
               )
-              scale(1.3)
-              rotate(45deg);
+              scale(1.15)
+              rotate(35deg);
           }
         }
       `}</style>

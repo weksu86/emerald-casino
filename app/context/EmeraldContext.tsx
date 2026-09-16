@@ -3,12 +3,14 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useState,
   ReactNode,
 } from "react";
 
 type EmeraldContextType = {
   balance: number;
+  peakBalance: number;
   claimedSkinIds: number[];
   depositedSkinIds: number[];
 
@@ -26,6 +28,11 @@ type EmeraldContextType = {
   ) => boolean;
 };
 
+const BALANCE_KEY = "cs-ace-balance";
+const PEAK_KEY = "cs-ace-peak-balance";
+const CLAIMED_KEY = "cs-ace-claimed-skins";
+const DEPOSITED_KEY = "cs-ace-deposited-skins";
+
 const EmeraldContext =
   createContext<EmeraldContextType | undefined>(
     undefined
@@ -37,6 +44,7 @@ export function EmeraldProvider({
   children: ReactNode;
 }) {
   const [balance, setBalance] = useState(0);
+  const [peakBalance, setPeakBalance] = useState(0);
 
   const [claimedSkinIds, setClaimedSkinIds] =
     useState<number[]>([]);
@@ -44,16 +52,130 @@ export function EmeraldProvider({
   const [depositedSkinIds, setDepositedSkinIds] =
     useState<number[]>([]);
 
+  const [loaded, setLoaded] = useState(false);
+
+  // Load saved player data once.
+  useEffect(() => {
+    try {
+      const savedBalance = Number(
+        localStorage.getItem(BALANCE_KEY) ?? "0"
+      );
+
+      const savedPeak = Number(
+        localStorage.getItem(PEAK_KEY) ?? "0"
+      );
+
+      const savedClaimed = JSON.parse(
+        localStorage.getItem(CLAIMED_KEY) ?? "[]"
+      );
+
+      const savedDeposited = JSON.parse(
+        localStorage.getItem(DEPOSITED_KEY) ?? "[]"
+      );
+
+      setBalance(
+        Number.isFinite(savedBalance)
+          ? Math.max(0, savedBalance)
+          : 0
+      );
+
+      setPeakBalance(
+        Number.isFinite(savedPeak)
+          ? Math.max(savedPeak, savedBalance, 0)
+          : Math.max(savedBalance, 0)
+      );
+
+      setClaimedSkinIds(
+        Array.isArray(savedClaimed)
+          ? savedClaimed
+          : []
+      );
+
+      setDepositedSkinIds(
+        Array.isArray(savedDeposited)
+          ? savedDeposited
+          : []
+      );
+    } catch {
+      setBalance(0);
+      setPeakBalance(0);
+      setClaimedSkinIds([]);
+      setDepositedSkinIds([]);
+    }
+
+    setLoaded(true);
+  }, []);
+
+  // Save current balance.
+  useEffect(() => {
+    if (!loaded) return;
+
+    localStorage.setItem(
+      BALANCE_KEY,
+      String(balance)
+    );
+  }, [balance, loaded]);
+
+  // Automatically maintain all-time peak.
+  useEffect(() => {
+    if (!loaded) return;
+
+    if (balance > peakBalance) {
+      setPeakBalance(balance);
+
+      localStorage.setItem(
+        PEAK_KEY,
+        String(balance)
+      );
+    }
+  }, [balance, peakBalance, loaded]);
+
+  useEffect(() => {
+    if (!loaded) return;
+
+    localStorage.setItem(
+      CLAIMED_KEY,
+      JSON.stringify(claimedSkinIds)
+    );
+  }, [claimedSkinIds, loaded]);
+
+  useEffect(() => {
+    if (!loaded) return;
+
+    localStorage.setItem(
+      DEPOSITED_KEY,
+      JSON.stringify(depositedSkinIds)
+    );
+  }, [depositedSkinIds, loaded]);
+
   function addEmeralds(amount: number) {
-    setBalance((current) => current + amount);
+    if (
+      !Number.isFinite(amount) ||
+      amount <= 0
+    ) {
+      return;
+    }
+
+    setBalance(
+      (current) => current + amount
+    );
   }
 
   function removeEmeralds(amount: number) {
+    if (
+      !Number.isFinite(amount) ||
+      amount <= 0
+    ) {
+      return false;
+    }
+
     if (balance < amount) {
       return false;
     }
 
-    setBalance((current) => current - amount);
+    setBalance(
+      (current) => current - amount
+    );
 
     return true;
   }
@@ -66,12 +188,23 @@ export function EmeraldProvider({
       return false;
     }
 
-    setClaimedSkinIds((current) => [
-      ...current,
-      skinId,
-    ]);
+    if (
+      !Number.isFinite(amount) ||
+      amount <= 0
+    ) {
+      return false;
+    }
 
-    setBalance((current) => current + amount);
+    setClaimedSkinIds(
+      (current) => [
+        ...current,
+        skinId,
+      ]
+    );
+
+    setBalance(
+      (current) => current + amount
+    );
 
     return true;
   }
@@ -80,16 +213,29 @@ export function EmeraldProvider({
     skinId: number,
     amount: number
   ) {
-    if (depositedSkinIds.includes(skinId)) {
+    if (
+      depositedSkinIds.includes(skinId)
+    ) {
       return false;
     }
 
-    setDepositedSkinIds((current) => [
-      ...current,
-      skinId,
-    ]);
+    if (
+      !Number.isFinite(amount) ||
+      amount <= 0
+    ) {
+      return false;
+    }
 
-    setBalance((current) => current + amount);
+    setDepositedSkinIds(
+      (current) => [
+        ...current,
+        skinId,
+      ]
+    );
+
+    setBalance(
+      (current) => current + amount
+    );
 
     return true;
   }
@@ -98,6 +244,7 @@ export function EmeraldProvider({
     <EmeraldContext.Provider
       value={{
         balance,
+        peakBalance,
         claimedSkinIds,
         depositedSkinIds,
         addEmeralds,
