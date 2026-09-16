@@ -921,7 +921,8 @@ export default function MinesPage() {
                       const showMine =
                         (isRevealed &&
                           isMine) ||
-                        (lost &&
+                        ((lost ||
+                          cashedOut) &&
                           isMine);
 
                       const showGem =
