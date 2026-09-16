@@ -198,13 +198,11 @@ export default function DepositPage() {
             }
 
             .deposit-glow {
-              animation: glowReveal 1.4s ease-out
-                both;
+              animation: glowReveal 1.4s ease-out both;
             }
 
             .deposit-ring {
-              animation: ringExpand 1.1s ease-out
-                both;
+              animation: ringExpand 1.1s ease-out both;
             }
 
             .deposit-flash {
@@ -436,9 +434,16 @@ export default function DepositPage() {
         <div className="mx-auto flex max-w-6xl items-center px-5 py-4">
           <Link
             href="/"
-            className="shrink-0 text-xl font-black text-[#F5C542]"
+            className="flex shrink-0 items-center"
           >
-            💎 EMERALD
+            <Image
+              src="/logo.png"
+              alt="CS ACE"
+              width={64}
+              height={64}
+              className="h-14 w-14 object-contain"
+              priority
+            />
           </Link>
 
           <div className="hidden flex-1 items-center md:flex">
@@ -505,7 +510,7 @@ export default function DepositPage() {
       <section className="mx-auto max-w-6xl px-4 py-8">
         <div className="text-center">
           <div className="text-[10px] font-bold uppercase tracking-[0.35em] text-[#6C2BD9]">
-            Emerald Casino
+            CS ACE
           </div>
 
           <h1 className="mt-2 text-4xl font-black md:text-5xl">

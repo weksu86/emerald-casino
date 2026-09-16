@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEmeralds } from "./context/EmeraldContext";
 
 export default function Home() {
@@ -13,9 +14,16 @@ export default function Home() {
         <div className="mx-auto flex max-w-6xl items-center px-5 py-4">
           <Link
             href="/"
-            className="shrink-0 text-xl font-black text-[#F5C542]"
+            className="flex shrink-0 items-center"
           >
-            💎 EMERALD
+            <Image
+              src="/logo.png"
+              alt="CS ACE"
+              width={64}
+              height={64}
+              className="h-14 w-14 object-contain"
+              priority
+            />
           </Link>
 
           <div className="hidden flex-1 items-center md:flex">
@@ -85,8 +93,18 @@ export default function Home() {
       <section className="mx-auto max-w-6xl px-4 py-10">
         {/* HERO */}
         <div className="rounded-3xl border border-[#6C2BD9]/40 bg-[radial-gradient(circle_at_top,#29134f,#151020,#0B0B0F)] px-6 py-14 text-center shadow-[0_0_60px_rgba(108,43,217,0.12)]">
-          <div className="text-sm font-black uppercase tracking-[0.4em] text-[#6C2BD9]">
-            Emerald Casino
+          {/* LARGE CS ACE LOGO */}
+          <Image
+            src="/logo.png"
+            alt="CS ACE"
+            width={260}
+            height={260}
+            className="mx-auto h-44 w-44 object-contain md:h-52 md:w-52"
+            priority
+          />
+
+          <div className="mt-4 text-sm font-black uppercase tracking-[0.4em] text-[#6C2BD9]">
+            CS ACE
           </div>
 
           <h1 className="mt-3 text-5xl font-black tracking-tight text-white md:text-7xl">
@@ -97,7 +115,7 @@ export default function Home() {
           </h1>
 
           <p className="mx-auto mt-5 max-w-xl text-sm leading-6 text-gray-500">
-            Welcome to Emerald. Try our casino games using
+            Welcome to CS ACE. Try our casino games using
             virtual Emeralds in this demo.
           </p>
 
@@ -129,7 +147,7 @@ export default function Home() {
         <div className="mt-8">
           <div className="mb-4">
             <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#6C2BD9]">
-              Emerald Casino
+              CS ACE
             </div>
 
             <h2 className="mt-1 text-2xl font-black">
@@ -184,7 +202,7 @@ export default function Home() {
               </Link>
             </div>
 
-            {/* EMERALD CASE */}
+            {/* CS ACE CASE */}
             <div className="relative overflow-hidden rounded-2xl border border-[#F5C542]/30 bg-[#111116] p-6 transition hover:border-[#F5C542]/70">
               <div className="pointer-events-none absolute right-[-50px] top-[-50px] h-40 w-40 rounded-full bg-[#6C2BD9]/15 blur-[50px]" />
 
@@ -195,7 +213,7 @@ export default function Home() {
               <div className="relative">
                 <div className="mt-4 flex items-center gap-2">
                   <h2 className="text-lg font-black">
-                    EMERALD CASE
+                    CS ACE CASE
                   </h2>
 
                   <span className="rounded-full border border-[#F5C542]/30 bg-[#F5C542]/10 px-2 py-1 text-[8px] font-black uppercase tracking-wider text-[#F5C542]">
@@ -204,7 +222,7 @@ export default function Home() {
                 </div>
 
                 <p className="mt-2 min-h-[40px] text-xs leading-5 text-gray-500">
-                  Open the Emerald Case and reveal a demo skin.
+                  Open the CS ACE Case and reveal a demo skin.
                   Rare drops are waiting.
                 </p>
 
@@ -217,7 +235,7 @@ export default function Home() {
                   </Link>
 
                   <div className="text-xs font-black text-gray-500">
-                    💎 500
+                    💎 1,000
                   </div>
                 </div>
               </div>

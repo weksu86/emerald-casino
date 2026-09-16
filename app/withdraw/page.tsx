@@ -135,37 +135,14 @@ export default function WithdrawPage() {
 
           <div className="withdraw-flash absolute left-1/2 top-1/2 h-[120px] w-[120px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#F5C542]/30 blur-[30px]" />
 
-          <span className="particle particle-1">
-            💎
-          </span>
-
-          <span className="particle particle-2">
-            ✦
-          </span>
-
-          <span className="particle particle-3">
-            💎
-          </span>
-
-          <span className="particle particle-4">
-            ✦
-          </span>
-
-          <span className="particle particle-5">
-            💎
-          </span>
-
-          <span className="particle particle-6">
-            ✦
-          </span>
-
-          <span className="particle particle-7">
-            💎
-          </span>
-
-          <span className="particle particle-8">
-            ✦
-          </span>
+          <span className="particle particle-1">💎</span>
+          <span className="particle particle-2">✦</span>
+          <span className="particle particle-3">💎</span>
+          <span className="particle particle-4">✦</span>
+          <span className="particle particle-5">💎</span>
+          <span className="particle particle-6">✦</span>
+          <span className="particle particle-7">💎</span>
+          <span className="particle particle-8">✦</span>
 
           <div className="withdraw-content relative z-20 flex flex-col items-center text-center">
             <div className="text-[11px] font-black uppercase tracking-[0.45em] text-[#20C997]">
@@ -455,9 +432,16 @@ export default function WithdrawPage() {
         <div className="mx-auto flex max-w-6xl items-center px-5 py-4">
           <Link
             href="/"
-            className="shrink-0 text-xl font-black text-[#F5C542]"
+            className="flex shrink-0 items-center"
           >
-            💎 EMERALD
+            <Image
+              src="/logo.png"
+              alt="CS ACE"
+              width={64}
+              height={64}
+              className="h-14 w-14 object-contain"
+              priority
+            />
           </Link>
 
           <div className="hidden flex-1 items-center md:flex">
@@ -524,7 +508,7 @@ export default function WithdrawPage() {
       <section className="mx-auto max-w-6xl px-4 py-8">
         <div className="text-center">
           <div className="text-[10px] font-bold uppercase tracking-[0.35em] text-[#6C2BD9]">
-            Emerald Casino
+            CS ACE
           </div>
 
           <h1 className="mt-2 text-4xl font-black md:text-5xl">

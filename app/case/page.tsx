@@ -113,6 +113,9 @@ export default function CasePage() {
 
   const [offset, setOffset] = useState(0);
 
+  const [spinEnabled, setSpinEnabled] =
+    useState(false);
+
   const [message, setMessage] = useState("");
 
   const [showWin, setShowWin] =
@@ -122,6 +125,26 @@ export default function CasePage() {
     null
   );
 
+  const spinTimeoutRef =
+    useRef<ReturnType<typeof setTimeout> | null>(
+      null
+    );
+
+  const showWinTimeoutRef =
+    useRef<ReturnType<typeof setTimeout> | null>(
+      null
+    );
+
+  const hideWinTimeoutRef =
+    useRef<ReturnType<typeof setTimeout> | null>(
+      null
+    );
+
+  const messageTimeoutRef =
+    useRef<ReturnType<typeof setTimeout> | null>(
+      null
+    );
+
   useEffect(() => {
     const startingReel = Array.from(
       { length: 40 },
@@ -129,6 +152,24 @@ export default function CasePage() {
     );
 
     setReel(startingReel);
+
+    return () => {
+      if (spinTimeoutRef.current) {
+        clearTimeout(spinTimeoutRef.current);
+      }
+
+      if (showWinTimeoutRef.current) {
+        clearTimeout(showWinTimeoutRef.current);
+      }
+
+      if (hideWinTimeoutRef.current) {
+        clearTimeout(hideWinTimeoutRef.current);
+      }
+
+      if (messageTimeoutRef.current) {
+        clearTimeout(messageTimeoutRef.current);
+      }
+    };
   }, []);
 
   function openCase() {
@@ -139,7 +180,11 @@ export default function CasePage() {
         "Not enough Emeralds to open this case."
       );
 
-      setTimeout(() => {
+      if (messageTimeoutRef.current) {
+        clearTimeout(messageTimeoutRef.current);
+      }
+
+      messageTimeoutRef.current = setTimeout(() => {
         setMessage("");
       }, 2500);
 
@@ -150,10 +195,33 @@ export default function CasePage() {
 
     if (!paid) return;
 
+    if (spinTimeoutRef.current) {
+      clearTimeout(spinTimeoutRef.current);
+    }
+
+    if (showWinTimeoutRef.current) {
+      clearTimeout(showWinTimeoutRef.current);
+    }
+
+    if (hideWinTimeoutRef.current) {
+      clearTimeout(hideWinTimeoutRef.current);
+    }
+
+    if (messageTimeoutRef.current) {
+      clearTimeout(messageTimeoutRef.current);
+    }
+
     setOpening(true);
     setWinner(null);
     setShowWin(false);
     setMessage("");
+
+    /*
+      Disable transition first and reset the reel.
+      This makes every spin animate again.
+    */
+    setSpinEnabled(false);
+    setOffset(0);
 
     const selectedWinner = pickWinner();
 
@@ -168,8 +236,10 @@ export default function CasePage() {
 
     setReel(newReel);
 
-    setOffset(0);
-
+    /*
+      Wait until the browser has rendered the reel
+      at offset 0 before starting the next spin.
+    */
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         const CARD_WIDTH = 164;
@@ -188,13 +258,15 @@ export default function CasePage() {
         const randomStop =
           Math.floor(Math.random() * 50) - 25;
 
+        setSpinEnabled(true);
+
         setOffset(
           -(target + randomStop)
         );
       });
     });
 
-    setTimeout(() => {
+    spinTimeoutRef.current = setTimeout(() => {
       setWinner(selectedWinner);
 
       addEmeralds(selectedWinner.value);
@@ -207,13 +279,17 @@ export default function CasePage() {
         )}`
       );
 
-      setTimeout(() => {
+      showWinTimeoutRef.current = setTimeout(() => {
         setShowWin(true);
       }, 250);
 
-      setTimeout(() => {
+      hideWinTimeoutRef.current = setTimeout(() => {
         setShowWin(false);
       }, 3000);
+
+      messageTimeoutRef.current = setTimeout(() => {
+        setMessage("");
+      }, 4000);
     }, 5200);
   }
 
@@ -310,9 +386,16 @@ export default function CasePage() {
         <div className="mx-auto flex max-w-6xl items-center px-5 py-4">
           <Link
             href="/"
-            className="shrink-0 text-xl font-black text-[#F5C542]"
+            className="flex shrink-0 items-center"
           >
-            💎 EMERALD
+            <Image
+              src="/logo.png"
+              alt="CS ACE"
+              width={64}
+              height={64}
+              className="h-14 w-14 object-contain"
+              priority
+            />
           </Link>
 
           <div className="hidden flex-1 items-center md:flex">
@@ -382,16 +465,15 @@ export default function CasePage() {
       <section className="mx-auto max-w-6xl px-4 py-8">
         <div className="text-center">
           <div className="text-[10px] font-bold uppercase tracking-[0.35em] text-[#6C2BD9]">
-            Emerald Casino
+            CS ACE
           </div>
 
           <h1 className="mt-2 text-4xl font-black md:text-5xl">
-            EMERALD CASE
+            CS ACE CASE
           </h1>
 
           <p className="mx-auto mt-3 max-w-lg text-sm text-gray-500">
-            Open the case and reveal your
-            demo skin.
+            Open the case and reveal your demo skin.
           </p>
         </div>
 
@@ -402,7 +484,10 @@ export default function CasePage() {
           </span>
 
           <span className="font-black text-[#F5C542]">
-            💎 {CASE_PRICE.toLocaleString("en-US")}
+            💎{" "}
+            {CASE_PRICE.toLocaleString(
+              "en-US"
+            )}
           </span>
         </div>
 
@@ -411,21 +496,26 @@ export default function CasePage() {
           ref={reelRef}
           className="relative mx-auto mt-8 h-[190px] max-w-5xl overflow-hidden rounded-2xl border border-[#6C2BD9]/40 bg-[#09090d] shadow-[0_0_50px_rgba(108,43,217,0.12)]"
         >
+          {/* LEFT SHADOW */}
           <div className="pointer-events-none absolute inset-y-0 left-0 z-20 w-28 bg-gradient-to-r from-[#09090d] to-transparent" />
 
+          {/* RIGHT SHADOW */}
           <div className="pointer-events-none absolute inset-y-0 right-0 z-20 w-28 bg-gradient-to-l from-[#09090d] to-transparent" />
 
+          {/* CENTER LINE */}
           <div className="pointer-events-none absolute left-1/2 top-0 z-30 h-full w-[2px] -translate-x-1/2 bg-[#F5C542] shadow-[0_0_15px_#F5C542]" />
 
+          {/* TOP POINTER */}
           <div className="pointer-events-none absolute left-1/2 top-0 z-40 -translate-x-1/2 border-l-[9px] border-r-[9px] border-t-[13px] border-l-transparent border-r-transparent border-t-[#F5C542]" />
 
+          {/* BOTTOM POINTER */}
           <div className="pointer-events-none absolute bottom-0 left-1/2 z-40 -translate-x-1/2 border-b-[13px] border-l-[9px] border-r-[9px] border-b-[#F5C542] border-l-transparent border-r-transparent" />
 
           <div
             className="absolute left-0 top-[15px] flex gap-2"
             style={{
               transform: `translateX(${offset}px)`,
-              transition: opening
+              transition: spinEnabled
                 ? "transform 5s cubic-bezier(0.08, 0.72, 0.08, 1)"
                 : "none",
             }}

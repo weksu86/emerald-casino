@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 import { useEmeralds } from "../context/EmeraldContext";
 
@@ -476,13 +477,21 @@ export default function JokerPokerPage() {
 
   return (
     <main className="min-h-screen bg-[#0B0B0F] text-[#F2F2F2]">
+      {/* HEADER */}
       <header className="border-b border-[#6C2BD9]/30 bg-[#0B0B0F]">
         <div className="mx-auto flex max-w-6xl items-center px-5 py-4">
           <Link
             href="/"
-            className="shrink-0 text-xl font-black text-[#F5C542]"
+            className="flex shrink-0 items-center"
           >
-            💎 EMERALD
+            <Image
+              src="/logo.png"
+              alt="CS ACE"
+              width={64}
+              height={64}
+              className="h-14 w-14 object-contain"
+              priority
+            />
           </Link>
 
           <div className="hidden flex-1 items-center md:flex">
@@ -545,10 +554,11 @@ export default function JokerPokerPage() {
         </div>
       </header>
 
+      {/* CONTENT */}
       <section className="mx-auto max-w-6xl px-4 py-6">
         <div className="mb-5 text-center">
           <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#6C2BD9]">
-            Emerald Casino
+            CS ACE
           </div>
 
           <h1 className="mt-1 text-4xl font-black">
@@ -560,6 +570,7 @@ export default function JokerPokerPage() {
           </p>
         </div>
 
+        {/* WIN ANIMATION */}
         {showWinAnimation && win > 0 && (
           <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center">
             <div className="animate-bounce rounded-2xl border border-[#20C997]/50 bg-[#10251f] px-10 py-6 text-center shadow-[0_0_50px_rgba(32,201,151,0.35)]">
@@ -578,6 +589,7 @@ export default function JokerPokerPage() {
           </div>
         )}
 
+        {/* GAME */}
         <div className="overflow-hidden rounded-3xl border border-[#6C2BD9]/40 bg-[#111116]">
           <div className="h-[360px] bg-[radial-gradient(circle_at_center,#29134f,#170d29,#0B0B0F)] px-3 py-10 md:px-8">
             <div className="flex h-full items-center justify-center gap-2 sm:gap-3">
@@ -618,6 +630,7 @@ export default function JokerPokerPage() {
             </div>
           </div>
 
+          {/* BET CONTROLS */}
           <div className="border-t border-[#6C2BD9]/30 bg-[#0B0B0F] p-4">
             <div className="mx-auto max-w-5xl">
               <div className="mb-2 text-center text-[9px] font-bold uppercase tracking-widest text-gray-600">
@@ -698,6 +711,7 @@ export default function JokerPokerPage() {
           </div>
         </div>
 
+        {/* PAYTABLE */}
         <div className="mt-7">
           <div className="mb-4 text-center text-sm font-black uppercase tracking-[0.3em] text-[#F5C542]">
             PAYTABLE

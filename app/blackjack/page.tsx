@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 import { useEmeralds } from "../context/EmeraldContext";
 
@@ -388,9 +389,16 @@ export default function BlackjackPage() {
         <div className="mx-auto flex max-w-6xl items-center px-5 py-3">
           <Link
             href="/"
-            className="shrink-0 text-xl font-black text-[#F5C542]"
+            className="flex shrink-0 items-center"
           >
-            💎 EMERALD
+            <Image
+              src="/logo.png"
+              alt="CS ACE"
+              width={64}
+              height={64}
+              className="h-14 w-14 object-contain"
+              priority
+            />
           </Link>
 
           <div className="hidden flex-1 items-center md:flex">
@@ -443,6 +451,7 @@ export default function BlackjackPage() {
             </nav>
           </div>
 
+          {/* BALANCE */}
           <div className="ml-auto rounded-xl border border-[#6C2BD9]/40 bg-[#15131D] px-4 py-2 md:ml-0">
             <div className="text-[9px] font-bold text-gray-500">
               BALANCE
@@ -455,10 +464,11 @@ export default function BlackjackPage() {
         </div>
       </header>
 
+      {/* CONTENT */}
       <section className="mx-auto max-w-6xl px-4 py-4">
         <div className="mb-3 text-center">
           <div className="text-[9px] font-bold uppercase tracking-[0.3em] text-[#6C2BD9]">
-            Emerald Casino
+            CS ACE
           </div>
 
           <h1 className="mt-1 text-3xl font-black">
@@ -470,6 +480,7 @@ export default function BlackjackPage() {
           </p>
         </div>
 
+        {/* WIN ANIMATION */}
         {showWinAnimation && win > 0 && (
           <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center">
             <div className="animate-bounce rounded-2xl border border-[#20C997]/50 bg-[#10251f] px-10 py-6 text-center shadow-[0_0_50px_rgba(32,201,151,0.35)]">
@@ -488,6 +499,7 @@ export default function BlackjackPage() {
           </div>
         )}
 
+        {/* GAME */}
         <div className="overflow-hidden rounded-3xl border border-[#6C2BD9]/40 bg-[#111116]">
           <div className="bg-[radial-gradient(circle_at_center,#29134f,#170d29,#0B0B0F)]">
             {/* DEALER */}
@@ -628,7 +640,7 @@ export default function BlackjackPage() {
                 </span>
               </div>
 
-              {/* FIXED BUTTON AREA */}
+              {/* BUTTON AREA */}
               <div className="mt-3 flex h-[44px] items-center justify-center gap-2">
                 {!playing && !result && (
                   <button
@@ -689,6 +701,7 @@ export default function BlackjackPage() {
           </div>
         </div>
 
+        {/* RULES */}
         <div className="mt-4 text-center">
           <span className="text-xs font-black text-[#F5C542]">
             BLACKJACK 2.5x
