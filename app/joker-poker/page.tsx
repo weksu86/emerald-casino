@@ -330,13 +330,12 @@ export default function JokerPokerPage() {
   const [playing, setPlaying] = useState(false);
   const [result, setResult] = useState("");
   const [win, setWin] = useState(0);
+
   const [showWinAnimation, setShowWinAnimation] =
     useState(false);
 
   function deal() {
-    if (playing) {
-      return;
-    }
+    if (playing) return;
 
     if (balance < bet || bet <= 0) {
       setResult("Not enough Emeralds");
@@ -369,9 +368,7 @@ export default function JokerPokerPage() {
   }
 
   function holdCard(index: number) {
-    if (!playing) {
-      return;
-    }
+    if (!playing) return;
 
     setHeld((current) =>
       current.map((value, i) => {
@@ -385,9 +382,7 @@ export default function JokerPokerPage() {
   }
 
   function draw() {
-    if (!playing) {
-      return;
-    }
+    if (!playing) return;
 
     const deck = shuffle(makeDeck());
 
@@ -482,38 +477,56 @@ export default function JokerPokerPage() {
   return (
     <main className="min-h-screen bg-[#0B0B0F] text-[#F2F2F2]">
       <header className="border-b border-[#6C2BD9]/30 bg-[#0B0B0F]">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
+        <div className="mx-auto flex max-w-6xl items-center px-5 py-4">
           <Link
             href="/"
-            className="text-xl font-black text-[#F5C542]"
+            className="shrink-0 text-xl font-black text-[#F5C542]"
           >
             💎 EMERALD
           </Link>
 
-          <nav className="hidden gap-6 text-sm text-gray-500 md:flex">
-            <Link
-              href="/"
-              className="hover:text-white"
-            >
-              Home
-            </Link>
+          <div className="hidden flex-1 items-center md:flex">
+            <nav className="ml-10 flex items-center gap-6 text-sm text-gray-500">
+              <Link
+                href="/"
+                className="transition hover:text-white"
+              >
+                Home
+              </Link>
 
-            <Link
-              href="/joker-poker"
-              className="font-bold text-white"
-            >
-              Joker Poker
-            </Link>
+              <Link
+                href="/joker-poker"
+                className="font-bold text-white"
+              >
+                Joker Poker
+              </Link>
 
-            <Link
-              href="/blackjack"
-              className="hover:text-white"
-            >
-              Blackjack
-            </Link>
-          </nav>
+              <Link
+                href="/blackjack"
+                className="transition hover:text-white"
+              >
+                Blackjack
+              </Link>
+            </nav>
 
-          <div className="rounded-xl border border-[#6C2BD9]/40 bg-[#15131D] px-4 py-2">
+            <nav className="ml-auto mr-6 flex items-center gap-3">
+              <Link
+                href="/deposit"
+                className="rounded-lg border border-[#6C2BD9]/40 bg-[#15131D] px-4 py-2 text-xs font-black text-gray-300 transition hover:border-[#6C2BD9] hover:text-white"
+              >
+                DEPOSIT
+              </Link>
+
+              <Link
+                href="/withdraw"
+                className="rounded-lg border border-[#F5C542]/30 bg-[#15131D] px-4 py-2 text-xs font-black text-[#F5C542] transition hover:border-[#F5C542]"
+              >
+                WITHDRAW
+              </Link>
+            </nav>
+          </div>
+
+          <div className="ml-auto rounded-xl border border-[#6C2BD9]/40 bg-[#15131D] px-4 py-2 md:ml-0">
             <div className="text-[9px] text-gray-500">
               BALANCE
             </div>
@@ -571,9 +584,7 @@ export default function JokerPokerPage() {
                     key={index}
                     card={card}
                     held={held[index]}
-                    onHold={() =>
-                      holdCard(index)
-                    }
+                    onHold={() => holdCard(index)}
                   />
                 ))
               )}
@@ -587,16 +598,14 @@ export default function JokerPokerPage() {
               )}
 
               {!playing && result && (
-                <div>
-                  <div
-                    className={
-                      win > 0
-                        ? "text-2xl font-black text-[#20C997]"
-                        : "text-2xl font-black text-[#E0525F]"
-                    }
-                  >
-                    {result}
-                  </div>
+                <div
+                  className={
+                    win > 0
+                      ? "text-2xl font-black text-[#20C997]"
+                      : "text-2xl font-black text-[#E0525F]"
+                  }
+                >
+                  {result}
                 </div>
               )}
             </div>
@@ -634,13 +643,9 @@ export default function JokerPokerPage() {
                   max={Math.max(balance, 1)}
                   step="1"
                   value={Math.min(bet, balance)}
-                  disabled={
-                    playing || balance <= 0
-                  }
+                  disabled={playing || balance <= 0}
                   onChange={(event) =>
-                    setBet(
-                      Number(event.target.value)
-                    )
+                    setBet(Number(event.target.value))
                   }
                   className="h-2 w-full cursor-pointer accent-[#F5C542]"
                 />
@@ -655,10 +660,7 @@ export default function JokerPokerPage() {
                   <button
                     type="button"
                     onClick={deal}
-                    disabled={
-                      bet <= 0 ||
-                      bet > balance
-                    }
+                    disabled={bet <= 0 || bet > balance}
                     className="rounded-xl bg-[#6C2BD9] px-12 py-3 text-sm font-black text-white hover:bg-[#7d3be8] disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     DEAL

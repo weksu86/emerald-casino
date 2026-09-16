@@ -1,319 +1,196 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { useEmeralds } from "./context/EmeraldContext";
 
-type Skin = {
-  id: number;
-  name: string;
-  value: number;
-  emoji: string;
-  wear: string;
-  rarity: string;
-};
-
-const skins: Skin[] = [
-  {
-    id: 1,
-    name: "AK-47 | Redline",
-    value: 1000,
-    emoji: "🔫",
-    wear: "Field-Tested",
-    rarity: "Classified",
-  },
-  {
-    id: 2,
-    name: "AWP | Asiimov",
-    value: 750,
-    emoji: "🎯",
-    wear: "Field-Tested",
-    rarity: "Covert",
-  },
-  {
-    id: 3,
-    name: "M4A1-S | Printstream",
-    value: 500,
-    emoji: "🔫",
-    wear: "Minimal Wear",
-    rarity: "Covert",
-  },
-];
-
 export default function Home() {
-  const { balance, claimedSkinIds, claimSkin } = useEmeralds();
-  const [message, setMessage] = useState("");
-
-  const availableSkins = skins.filter(
-    (skin) => !claimedSkinIds.includes(skin.id)
-  );
-
-  function handleClaim(skin: Skin) {
-    const received = Math.round(skin.value * 0.91);
-
-    const success = claimSkin(skin.id, received);
-
-    if (!success) {
-      setMessage(`${skin.name} has already been claimed.`);
-      return;
-    }
-
-    setMessage(
-      `${skin.name} claimed — +${received.toLocaleString(
-        "en-US"
-      )} Emeralds`
-    );
-
-    setTimeout(() => setMessage(""), 2500);
-  }
+  const { balance } = useEmeralds();
 
   return (
-    <main className="min-h-screen bg-[#07110d] text-white">
-      <header className="border-b border-emerald-900/40 bg-[#091610]">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+    <main className="min-h-screen bg-[#0B0B0F] text-[#F2F2F2]">
+      {/* HEADER */}
+      <header className="border-b border-[#6C2BD9]/30 bg-[#0B0B0F]">
+        <div className="mx-auto flex max-w-6xl items-center px-5 py-4">
           <Link
             href="/"
-            className="text-2xl font-black tracking-wide text-emerald-400"
+            className="shrink-0 text-xl font-black text-[#F5C542]"
           >
             💎 EMERALD
           </Link>
 
-          <div className="flex items-center gap-6">
-            <nav className="hidden gap-6 text-sm text-gray-400 md:flex">
+          <div className="hidden flex-1 items-center md:flex">
+            {/* GAMES */}
+            <nav className="ml-10 flex items-center gap-6 text-sm text-gray-500">
+              <Link
+                href="/"
+                className="font-bold text-white"
+              >
+                Home
+              </Link>
+
               <Link
                 href="/joker-poker"
-                className="hover:text-white"
+                className="transition hover:text-white"
               >
                 Joker Poker
               </Link>
 
               <Link
                 href="/blackjack"
-                className="hover:text-white"
+                className="transition hover:text-white"
               >
                 Blackjack
               </Link>
-
-              <span className="cursor-not-allowed text-gray-600">
-                Poker
-              </span>
             </nav>
 
-            <div className="rounded-xl border border-emerald-800/50 bg-[#0d1c15] px-4 py-2">
-              <span className="text-sm text-gray-400">
-                Balance
-              </span>
+            {/* DEPOSIT / WITHDRAW */}
+            <nav className="ml-auto mr-6 flex items-center gap-3">
+              <Link
+                href="/deposit"
+                className="rounded-lg border border-[#6C2BD9]/40 bg-[#15131D] px-4 py-2 text-xs font-black text-gray-300 transition hover:border-[#6C2BD9] hover:text-white"
+              >
+                DEPOSIT
+              </Link>
 
-              <div className="font-bold text-emerald-400">
-                💎 {balance.toLocaleString("en-US")}
-              </div>
+              <Link
+                href="/withdraw"
+                className="rounded-lg border border-[#F5C542]/30 bg-[#15131D] px-4 py-2 text-xs font-black text-[#F5C542] transition hover:border-[#F5C542]"
+              >
+                WITHDRAW
+              </Link>
+            </nav>
+          </div>
+
+          {/* BALANCE */}
+          <div className="ml-auto rounded-xl border border-[#6C2BD9]/40 bg-[#15131D] px-4 py-2 md:ml-0">
+            <div className="text-[9px] font-bold text-gray-500">
+              BALANCE
+            </div>
+
+            <div className="font-black text-[#F5C542]">
+              💎 {balance.toLocaleString("en-US")}
             </div>
           </div>
         </div>
       </header>
 
-      <section className="mx-auto max-w-6xl px-6 py-20 text-center">
-        <div className="mb-5 inline-block rounded-full border border-emerald-800/50 bg-emerald-950/40 px-4 py-2 text-sm text-emerald-400">
-          DEMO CASINO
-        </div>
+      {/* CONTENT */}
+      <section className="mx-auto max-w-6xl px-4 py-10">
+        {/* HERO */}
+        <div className="rounded-3xl border border-[#6C2BD9]/40 bg-[radial-gradient(circle_at_top,#29134f,#151020,#0B0B0F)] px-6 py-14 text-center shadow-[0_0_60px_rgba(108,43,217,0.12)]">
+          <div className="text-sm font-black uppercase tracking-[0.4em] text-[#6C2BD9]">
+            Emerald Casino
+          </div>
 
-        <h1 className="text-5xl font-black tracking-tight md:text-7xl">
-          Welcome to{" "}
-          <span className="text-emerald-400">
-            Emerald
-          </span>
-        </h1>
+          <h1 className="mt-3 text-5xl font-black tracking-tight text-white md:text-7xl">
+            PLAY WITH
+            <span className="block text-[#F5C542]">
+              EMERALDS
+            </span>
+          </h1>
 
-        <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-400">
-          A dark Emerald-themed CS2 casino demo.
-          Play with virtual Emeralds and try the
-          available games.
-        </p>
-
-        <div className="mt-10 flex justify-center gap-4">
-          <Link
-            href="/joker-poker"
-            className="rounded-xl bg-emerald-500 px-7 py-3 font-bold text-black transition hover:bg-emerald-400"
-          >
-            Play Joker Poker
-          </Link>
-
-          <Link
-            href="/blackjack"
-            className="rounded-xl border border-emerald-800 bg-[#0d1c15] px-7 py-3 font-bold text-white transition hover:border-emerald-500"
-          >
-            Play Blackjack
-          </Link>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-6 pb-20">
-        <div className="mb-8">
-          <h2 className="text-3xl font-black">
-            Games
-          </h2>
-
-          <p className="mt-2 text-gray-500">
-            Choose a game and play with your Emerald
-            balance.
+          <p className="mx-auto mt-5 max-w-xl text-sm leading-6 text-gray-500">
+            Welcome to Emerald. Try our casino games
+            using virtual Emeralds in this demo.
           </p>
+
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Link
+              href="/joker-poker"
+              className="rounded-xl bg-[#6C2BD9] px-7 py-3 text-sm font-black text-white transition hover:bg-[#7d3be8]"
+            >
+              PLAY JOKER POKER
+            </Link>
+
+            <Link
+              href="/blackjack"
+              className="rounded-xl border border-[#F5C542]/40 bg-[#15131D] px-7 py-3 text-sm font-black text-[#F5C542] transition hover:border-[#F5C542]"
+            >
+              PLAY BLACKJACK
+            </Link>
+          </div>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-3">
-          <Link
-            href="/joker-poker"
-            className="rounded-2xl border border-emerald-900/50 bg-[#0b1812] p-6 transition hover:border-emerald-500/60"
-          >
-            <div className="text-4xl">🃏</div>
+        {/* GAMES */}
+        <div className="mt-8 grid gap-4 md:grid-cols-3">
+          {/* JOKER POKER */}
+          <div className="rounded-2xl border border-[#6C2BD9]/30 bg-[#111116] p-6">
+            <div className="text-3xl">
+              🃏
+            </div>
 
-            <h3 className="mt-4 text-xl font-bold">
-              Joker Poker
-            </h3>
+            <h2 className="mt-4 text-lg font-black">
+              JOKER POKER
+            </h2>
 
-            <p className="mt-2 text-sm text-gray-500">
-              Hold your cards, draw new ones, and play
-              Joker Poker with virtual Emeralds.
+            <p className="mt-2 text-xs leading-5 text-gray-500">
+              Hold your cards, draw once and try to
+              hit the biggest hands.
             </p>
-          </Link>
 
-          <Link
-            href="/blackjack"
-            className="rounded-2xl border border-emerald-900/50 bg-[#0b1812] p-6 transition hover:border-emerald-500/60"
-          >
-            <div className="text-4xl">🃏</div>
+            <Link
+              href="/joker-poker"
+              className="mt-5 inline-block text-xs font-black text-[#F5C542] transition hover:text-white"
+            >
+              PLAY NOW →
+            </Link>
+          </div>
 
-            <h3 className="mt-4 text-xl font-bold">
-              Blackjack
-            </h3>
+          {/* BLACKJACK */}
+          <div className="rounded-2xl border border-[#6C2BD9]/30 bg-[#111116] p-6">
+            <div className="text-3xl">
+              ♠️
+            </div>
 
-            <p className="mt-2 text-sm text-gray-500">
-              Beat the dealer and increase your Emerald
-              balance.
+            <h2 className="mt-4 text-lg font-black">
+              BLACKJACK
+            </h2>
+
+            <p className="mt-2 text-xs leading-5 text-gray-500">
+              Play classic blackjack against the
+              dealer using virtual Emeralds.
             </p>
-          </Link>
 
-          <div className="rounded-2xl border border-gray-800 bg-[#0b1812] p-6 opacity-50">
-            <div className="text-4xl">♠️</div>
+            <Link
+              href="/blackjack"
+              className="mt-5 inline-block text-xs font-black text-[#F5C542] transition hover:text-white"
+            >
+              PLAY NOW →
+            </Link>
+          </div>
 
-            <h3 className="mt-4 text-xl font-bold">
-              Poker
-            </h3>
+          {/* POKER COMING SOON */}
+          <div className="rounded-2xl border border-[#6C2BD9]/20 bg-[#111116] p-6 opacity-50">
+            <div className="text-3xl">
+              🂡
+            </div>
 
-            <p className="mt-2 text-sm text-gray-500">
+            <h2 className="mt-4 text-lg font-black">
+              POKER
+            </h2>
+
+            <p className="mt-2 text-xs leading-5 text-gray-500">
               Coming soon.
             </p>
+
+            <span className="mt-5 inline-block text-xs font-black text-gray-600">
+              COMING SOON
+            </span>
           </div>
         </div>
-      </section>
 
-      <section className="mx-auto max-w-6xl px-6 pb-24">
-        <div className="mb-8">
-          <h2 className="text-3xl font-black">
-            Demo Inventory
-          </h2>
+        {/* DEMO NOTICE */}
+        <div className="mt-8 rounded-2xl border border-[#6C2BD9]/20 bg-[#111116] px-6 py-5 text-center">
+          <div className="text-xs font-black uppercase tracking-[0.25em] text-[#F5C542]">
+            💎 Emeralds
+          </div>
 
-          <p className="mt-2 text-gray-500">
-            Claim each demo skin once. 9% demo fee is
-            applied.
+          <p className="mt-2 text-xs text-gray-600">
+            This is a demo using virtual currency.
+            No real-money deposits, withdrawals or
+            Steam item transfers are connected.
           </p>
         </div>
-
-        {message && (
-          <div className="mb-6 rounded-xl border border-emerald-800/50 bg-emerald-950/40 px-5 py-4 text-center font-semibold text-emerald-400">
-            {message}
-          </div>
-        )}
-
-        {availableSkins.length === 0 ? (
-          <div className="rounded-2xl border border-emerald-900/50 bg-[#0b1812] p-10 text-center">
-            <div className="text-4xl">✅</div>
-
-            <h3 className="mt-4 text-xl font-bold">
-              All demo skins claimed
-            </h3>
-
-            <p className="mt-2 text-gray-500">
-              You have already claimed every available
-              demo skin.
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-5 md:grid-cols-3">
-            {availableSkins.map((skin) => {
-              const received = Math.round(
-                skin.value * 0.91
-              );
-
-              return (
-                <div
-                  key={skin.id}
-                  className="rounded-2xl border border-emerald-900/50 bg-[#0b1812] p-6"
-                >
-                  <div className="flex items-center justify-center rounded-xl bg-[#101f17] py-10 text-7xl">
-                    {skin.emoji}
-                  </div>
-
-                  <div className="mt-5">
-                    <h3 className="font-bold">
-                      {skin.name}
-                    </h3>
-
-                    <div className="mt-3 space-y-1 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">
-                          Wear
-                        </span>
-
-                        <span>{skin.wear}</span>
-                      </div>
-
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">
-                          Rarity
-                        </span>
-
-                        <span>{skin.rarity}</span>
-                      </div>
-
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">
-                          Value
-                        </span>
-
-                        <span className="font-bold text-emerald-400">
-                          💎{" "}
-                          {skin.value.toLocaleString(
-                            "en-US"
-                          )}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">
-                          You receive
-                        </span>
-
-                        <span className="font-bold text-white">
-                          💎{" "}
-                          {received.toLocaleString(
-                            "en-US"
-                          )}
-                        </span>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => handleClaim(skin)}
-                      className="mt-5 w-full rounded-xl bg-emerald-500 py-3 font-bold text-black transition hover:bg-emerald-400"
-                    >
-                      Claim Skin
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </section>
     </main>
   );

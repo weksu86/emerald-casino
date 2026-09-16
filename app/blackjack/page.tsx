@@ -9,54 +9,66 @@ type Suit = "♠" | "♥" | "♦" | "♣";
 type Card = {
   rank: string;
   suit: Suit;
+  value: number;
 };
 
 const suits: Suit[] = ["♠", "♥", "♦", "♣"];
 
 const ranks = [
-  "A",
-  "2",
-  "3",
-  "4",
-  "5",
-  "6",
-  "7",
-  "8",
-  "9",
-  "10",
-  "J",
-  "Q",
-  "K",
+  { rank: "2", value: 2 },
+  { rank: "3", value: 3 },
+  { rank: "4", value: 4 },
+  { rank: "5", value: 5 },
+  { rank: "6", value: 6 },
+  { rank: "7", value: 7 },
+  { rank: "8", value: 8 },
+  { rank: "9", value: 9 },
+  { rank: "10", value: 10 },
+  { rank: "J", value: 10 },
+  { rank: "Q", value: 10 },
+  { rank: "K", value: 10 },
+  { rank: "A", value: 11 },
 ];
 
-function createDeck(): Card[] {
+function makeDeck(): Card[] {
   const deck: Card[] = [];
 
   for (const suit of suits) {
-    for (const rank of ranks) {
-      deck.push({ rank, suit });
+    for (const item of ranks) {
+      deck.push({
+        rank: item.rank,
+        suit,
+        value: item.value,
+      });
     }
   }
 
-  return deck.sort(() => Math.random() - 0.5);
+  return deck;
 }
 
-function getValue(cards: Card[]) {
+function shuffle(cards: Card[]): Card[] {
+  const deck = [...cards];
+
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+
+    const temp = deck[i];
+    deck[i] = deck[j];
+    deck[j] = temp;
+  }
+
+  return deck;
+}
+
+function handValue(cards: Card[]): number {
   let total = 0;
   let aces = 0;
 
   for (const card of cards) {
+    total += card.value;
+
     if (card.rank === "A") {
-      total += 11;
       aces++;
-    } else if (
-      card.rank === "K" ||
-      card.rank === "Q" ||
-      card.rank === "J"
-    ) {
-      total += 10;
-    } else {
-      total += Number(card.rank);
     }
   }
 
@@ -68,636 +80,625 @@ function getValue(cards: Card[]) {
   return total;
 }
 
-function isBlackjack(cards: Card[]) {
-  return cards.length === 2 && getValue(cards) === 21;
+function isBlackjack(cards: Card[]): boolean {
+  return cards.length === 2 && handValue(cards) === 21;
 }
 
 function PlayingCard({
   card,
   hidden = false,
 }: {
-  card?: Card;
+  card: Card;
   hidden?: boolean;
 }) {
   if (hidden) {
     return (
-      <div className="relative h-36 w-24 overflow-hidden rounded-2xl border-2 border-emerald-400 bg-[#063d28] shadow-[0_15px_35px_rgba(0,0,0,0.45)] sm:h-44 sm:w-30">
-        <div className="absolute inset-2 rounded-xl border border-emerald-400/40 bg-[#082719]" />
+      <div className="relative h-28 w-[68px] rounded-xl border-2 border-[#6C2BD9] bg-[#21113d] shadow-xl sm:h-32 sm:w-[80px]">
+        <div className="absolute inset-2 rounded-lg border border-[#F5C542]/30 bg-[radial-gradient(circle_at_center,#6C2BD9,#24103f)]" />
 
-        <div className="absolute inset-0 flex items-center justify-center text-4xl">
+        <div className="relative flex h-full items-center justify-center text-2xl text-[#F5C542]">
           💎
         </div>
       </div>
     );
   }
 
-  if (!card) return null;
-
-  const red =
-    card.suit === "♥" || card.suit === "♦";
+  const red = card.suit === "♥" || card.suit === "♦";
+  const textClass = red ? "text-red-500" : "text-black";
 
   return (
-    <div
-      className={`relative h-36 w-24 rounded-2xl border border-gray-300 bg-white p-3 shadow-[0_15px_35px_rgba(0,0,0,0.45)] sm:h-44 sm:w-30 ${
-        red ? "text-red-500" : "text-gray-900"
-      }`}
-    >
-      {/* YLÄKULMA */}
-      <div className="absolute left-3 top-3 text-center leading-none">
-        <div className="text-xl font-black">
-          {card.rank}
-        </div>
-        <div className="mt-1 text-lg font-bold">
-          {card.suit}
-        </div>
+    <div className="relative h-28 w-[68px] rounded-xl border-2 border-white bg-white shadow-xl sm:h-32 sm:w-[80px]">
+      <div
+        className={
+          "absolute left-2 top-2 text-left text-base font-black leading-none " +
+          textClass
+        }
+      >
+        <div>{card.rank}</div>
+        <div className="mt-1">{card.suit}</div>
       </div>
 
-      {/* KESKELTÄ MAA */}
-      <div className="absolute inset-0 flex items-center justify-center text-5xl">
+      <div
+        className={
+          "flex h-full items-center justify-center text-3xl " +
+          textClass
+        }
+      >
         {card.suit}
-      </div>
-
-      {/* ALAKULMA - EI ENÄÄ KÄÄNNETTYNÄ */}
-      <div className="absolute bottom-3 right-3 text-center leading-none">
-        <div className="text-xl font-black">
-          {card.rank}
-        </div>
-        <div className="mt-1 text-lg font-bold">
-          {card.suit}
-        </div>
       </div>
     </div>
   );
 }
 
 export default function BlackjackPage() {
-  const { balance, addEmeralds, removeEmeralds } =
+  const { balance, removeEmeralds, addEmeralds } =
     useEmeralds();
 
-  const [player, setPlayer] = useState<Card[]>([]);
-  const [dealer, setDealer] = useState<Card[]>([]);
+  const [playerCards, setPlayerCards] = useState<Card[]>([]);
+  const [dealerCards, setDealerCards] = useState<Card[]>([]);
   const [deck, setDeck] = useState<Card[]>([]);
 
   const [bet, setBet] = useState(100);
-  const [activeBet, setActiveBet] = useState(0);
-
   const [playing, setPlaying] = useState(false);
-  const [dealerHidden, setDealerHidden] = useState(true);
+  const [result, setResult] = useState("");
+  const [win, setWin] = useState(0);
 
-  const [status, setStatus] = useState(
-    "Choose your bet to start."
-  );
-
-  const [gameFinished, setGameFinished] =
+  const [showWinAnimation, setShowWinAnimation] =
     useState(false);
-
-  function setBetAmount(amount: number) {
-    if (playing) return;
-
-    if (balance <= 0) {
-      setBet(0);
-      return;
-    }
-
-    setBet(Math.min(amount, balance));
-  }
-
-  function halfBet() {
-    if (playing || balance <= 0) return;
-
-    setBet(Math.max(1, Math.floor(balance / 2)));
-  }
-
-  function maxBet() {
-    if (playing || balance <= 0) return;
-
-    setBet(balance);
-  }
 
   function startGame() {
     if (playing) return;
 
-    if (bet <= 0) {
-      setStatus("Choose a valid bet.");
+    if (bet <= 0 || bet > balance) {
+      setResult("Not enough Emeralds");
       return;
     }
 
-    if (bet > balance) {
-      setStatus("Not enough Emeralds.");
+    const success = removeEmeralds(bet);
+
+    if (!success) {
+      setResult("Not enough Emeralds");
       return;
     }
 
-    if (!removeEmeralds(bet)) {
-      setStatus("Not enough Emeralds.");
-      return;
-    }
+    const shuffled = shuffle(makeDeck());
 
-    const newDeck = createDeck();
+    const player = [shuffled[0], shuffled[2]];
+    const dealer = [shuffled[1], shuffled[3]];
 
-    const playerCards = [
-      newDeck[0],
-      newDeck[2],
-    ];
-
-    const dealerCards = [
-      newDeck[1],
-      newDeck[3],
-    ];
-
-    setDeck(newDeck.slice(4));
-    setPlayer(playerCards);
-    setDealer(dealerCards);
-    setActiveBet(bet);
-    setDealerHidden(true);
+    setPlayerCards(player);
+    setDealerCards(dealer);
+    setDeck(shuffled.slice(4));
     setPlaying(true);
-    setGameFinished(false);
+    setResult("");
+    setWin(0);
+    setShowWinAnimation(false);
 
-    if (isBlackjack(playerCards)) {
-      const payout = Math.floor(bet * 2.5);
-
-      addEmeralds(payout);
-
-      setDealerHidden(false);
-      setPlaying(false);
-      setGameFinished(true);
-      setStatus("Blackjack!");
-
-      return;
+    if (isBlackjack(player)) {
+      finishRound(
+        player,
+        dealer,
+        bet,
+        shuffled.slice(4)
+      );
     }
-
-    setStatus("Your turn.");
   }
 
   function hit() {
     if (!playing || deck.length === 0) return;
 
-    const newCard = deck[0];
-    const remaining = deck.slice(1);
+    const card = deck[0];
 
-    const newPlayer = [...player, newCard];
+    const newPlayerCards = [
+      ...playerCards,
+      card,
+    ];
 
-    setPlayer(newPlayer);
-    setDeck(remaining);
+    const newDeck = deck.slice(1);
 
-    const value = getValue(newPlayer);
+    setPlayerCards(newPlayerCards);
+    setDeck(newDeck);
 
-    if (value > 21) {
-      setDealerHidden(false);
-      setPlaying(false);
-      setGameFinished(true);
-      setStatus("Bust.");
-
-      return;
-    }
-
-    if (value === 21) {
+    if (handValue(newPlayerCards) > 21) {
       finishRound(
-        newPlayer,
-        dealer,
-        remaining,
-        activeBet
+        newPlayerCards,
+        dealerCards,
+        bet,
+        newDeck
       );
-
-      return;
     }
-
-    setStatus("Your turn.");
   }
 
   function stand() {
     if (!playing) return;
 
+    let newDealerCards = [...dealerCards];
+    let newDeck = [...deck];
+
+    while (
+      handValue(newDealerCards) < 17 &&
+      newDeck.length > 0
+    ) {
+      newDealerCards = [
+        ...newDealerCards,
+        newDeck[0],
+      ];
+
+      newDeck = newDeck.slice(1);
+    }
+
+    setDealerCards(newDealerCards);
+    setDeck(newDeck);
+
     finishRound(
-      player,
-      dealer,
-      deck,
-      activeBet
+      playerCards,
+      newDealerCards,
+      bet,
+      newDeck
+    );
+  }
+
+  function doubleDown() {
+    if (
+      !playing ||
+      deck.length === 0 ||
+      playerCards.length !== 2
+    ) {
+      return;
+    }
+
+    if (balance < bet) {
+      setResult("Not enough Emeralds to double");
+      return;
+    }
+
+    const success = removeEmeralds(bet);
+
+    if (!success) return;
+
+    const newBet = bet * 2;
+    setBet(newBet);
+
+    const card = deck[0];
+
+    const newPlayerCards = [
+      ...playerCards,
+      card,
+    ];
+
+    const newDeck = deck.slice(1);
+
+    setPlayerCards(newPlayerCards);
+    setDeck(newDeck);
+
+    if (handValue(newPlayerCards) > 21) {
+      finishRound(
+        newPlayerCards,
+        dealerCards,
+        newBet,
+        newDeck
+      );
+
+      return;
+    }
+
+    let newDealerCards = [...dealerCards];
+    let remainingDeck = [...newDeck];
+
+    while (
+      handValue(newDealerCards) < 17 &&
+      remainingDeck.length > 0
+    ) {
+      newDealerCards = [
+        ...newDealerCards,
+        remainingDeck[0],
+      ];
+
+      remainingDeck = remainingDeck.slice(1);
+    }
+
+    setDealerCards(newDealerCards);
+    setDeck(remainingDeck);
+
+    finishRound(
+      newPlayerCards,
+      newDealerCards,
+      newBet,
+      remainingDeck
     );
   }
 
   function finishRound(
-    playerCards: Card[],
-    dealerCards: Card[],
-    currentDeck: Card[],
-    roundBet: number
+    player: Card[],
+    dealer: Card[],
+    currentBet: number,
+    remainingDeck: Card[]
   ) {
-    let finalDealer = [...dealerCards];
-    let remaining = [...currentDeck];
+    const playerValue = handValue(player);
+    const dealerValue = handValue(dealer);
 
-    while (getValue(finalDealer) < 17) {
-      const next = remaining[0];
-
-      if (!next) break;
-
-      finalDealer.push(next);
-      remaining = remaining.slice(1);
-    }
-
-    const playerValue = getValue(playerCards);
-    const dealerValue = getValue(finalDealer);
-
-    setPlayer(playerCards);
-    setDealer(finalDealer);
-    setDeck(remaining);
-    setDealerHidden(false);
-    setPlaying(false);
-    setGameFinished(true);
+    let payout = 0;
+    let message = "";
 
     if (playerValue > 21) {
-      setStatus("Bust.");
-      return;
+      message = "BUST";
+    } else if (isBlackjack(player)) {
+      payout = currentBet * 2.5;
+      message = "BLACKJACK";
+    } else if (
+      dealerValue > 21 ||
+      playerValue > dealerValue
+    ) {
+      payout = currentBet * 2;
+      message = "YOU WIN";
+    } else if (playerValue === dealerValue) {
+      payout = currentBet;
+      message = "PUSH";
+    } else {
+      message = "DEALER WINS";
     }
 
-    if (dealerValue > 21) {
-      addEmeralds(roundBet * 2);
-      setStatus("Dealer busted.");
-      return;
+    setDeck(remainingDeck);
+    setPlaying(false);
+    setResult(message);
+    setWin(payout);
+
+    if (payout > 0) {
+      addEmeralds(payout);
+
+      if (message !== "PUSH") {
+        setShowWinAnimation(true);
+
+        setTimeout(() => {
+          setShowWinAnimation(false);
+        }, 2800);
+      }
     }
-
-    if (playerValue > dealerValue) {
-      addEmeralds(roundBet * 2);
-      setStatus("You win.");
-      return;
-    }
-
-    if (playerValue < dealerValue) {
-      setStatus("Dealer wins.");
-      return;
-    }
-
-    addEmeralds(roundBet);
-    setStatus("Push.");
-  }
-
-  function doubleDown() {
-    if (!playing || player.length !== 2) {
-      return;
-    }
-
-    if (balance < activeBet) {
-      setStatus("Not enough Emeralds to double.");
-      return;
-    }
-
-    if (!removeEmeralds(activeBet)) {
-      setStatus("Not enough Emeralds to double.");
-      return;
-    }
-
-    const newBet = activeBet * 2;
-
-    setActiveBet(newBet);
-
-    if (deck.length === 0) return;
-
-    const newCard = deck[0];
-    const remaining = deck.slice(1);
-
-    const newPlayer = [...player, newCard];
-
-    setPlayer(newPlayer);
-    setDeck(remaining);
-
-    if (getValue(newPlayer) > 21) {
-      setDealerHidden(false);
-      setPlaying(false);
-      setGameFinished(true);
-      setStatus("Double — Bust.");
-      return;
-    }
-
-    finishRound(
-      newPlayer,
-      dealer,
-      remaining,
-      newBet
-    );
   }
 
   function newGame() {
-    setPlayer([]);
-    setDealer([]);
+    setPlayerCards([]);
+    setDealerCards([]);
     setDeck([]);
-    setActiveBet(0);
     setPlaying(false);
-    setDealerHidden(true);
-    setGameFinished(false);
-    setStatus("Choose your bet to start.");
+    setResult("");
+    setWin(0);
+    setShowWinAnimation(false);
   }
 
-  const playerValue =
-    player.length > 0 ? getValue(player) : 0;
+  function handleBetInput(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const value = Number(
+      event.target.value.replace(/\D/g, "")
+    );
 
-  const dealerValue =
-    dealer.length > 0
-      ? dealerHidden
-        ? "?"
-        : getValue(dealer)
-      : 0;
+    if (value > balance) {
+      setBet(balance);
+      return;
+    }
 
-  const betOptions = [25, 50, 100, 250, 500];
+    setBet(value);
+  }
 
   return (
-    <main className="min-h-screen bg-[#050b08] text-white">
-      <header className="border-b border-emerald-900/40 bg-[#08120d]">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5">
+    <main className="min-h-screen bg-[#0B0B0F] text-[#F2F2F2]">
+      {/* HEADER */}
+      <header className="border-b border-[#6C2BD9]/30 bg-[#0B0B0F]">
+        <div className="mx-auto flex max-w-6xl items-center px-5 py-3">
           <Link
             href="/"
-            className="text-2xl font-black tracking-wide text-emerald-400"
+            className="shrink-0 text-xl font-black text-[#F5C542]"
           >
             💎 EMERALD
           </Link>
 
-          <nav className="hidden items-center gap-7 text-sm text-gray-500 md:flex">
-            <Link href="/" className="hover:text-white">
-              Home
-            </Link>
+          <div className="hidden flex-1 items-center md:flex">
+            {/* GAMES */}
+            <nav className="ml-10 flex items-center gap-6 text-sm text-gray-500">
+              <Link
+                href="/"
+                className="transition hover:text-white"
+              >
+                Home
+              </Link>
 
-            <Link
-              href="/upgrader"
-              className="hover:text-white"
-            >
-              Upgrader
-            </Link>
+              <Link
+                href="/joker-poker"
+                className="transition hover:text-white"
+              >
+                Joker Poker
+              </Link>
 
-            <Link
-              href="/blackjack"
-              className="font-bold text-white"
-            >
-              Blackjack
-            </Link>
-          </nav>
+              <Link
+                href="/blackjack"
+                className="font-bold text-white"
+              >
+                Blackjack
+              </Link>
+            </nav>
 
-          <div className="rounded-xl border border-emerald-800/50 bg-[#0c1a13] px-4 py-2">
-            <div className="text-xs text-gray-500">
+            {/* DEPOSIT / WITHDRAW */}
+            <nav className="ml-auto mr-6 flex items-center gap-3">
+              <Link
+                href="/deposit"
+                className="rounded-lg border border-[#6C2BD9]/40 bg-[#15131D] px-4 py-2 text-xs font-black text-gray-300 transition hover:border-[#6C2BD9] hover:text-white"
+              >
+                DEPOSIT
+              </Link>
+
+              <Link
+                href="/withdraw"
+                className="rounded-lg border border-[#F5C542]/30 bg-[#15131D] px-4 py-2 text-xs font-black text-[#F5C542] transition hover:border-[#F5C542]"
+              >
+                WITHDRAW
+              </Link>
+            </nav>
+          </div>
+
+          <div className="ml-auto rounded-xl border border-[#6C2BD9]/40 bg-[#15131D] px-4 py-2 md:ml-0">
+            <div className="text-[9px] font-bold text-gray-500">
               BALANCE
             </div>
 
-            <div className="font-black text-emerald-400">
+            <div className="font-black text-[#F5C542]">
               💎 {balance.toLocaleString("en-US")}
             </div>
           </div>
         </div>
       </header>
 
-      <section className="mx-auto max-w-7xl px-5 py-8 md:py-12">
-        <div className="mb-8 text-center">
-          <div className="text-xs font-bold uppercase tracking-[0.35em] text-emerald-500">
+      <section className="mx-auto max-w-6xl px-4 py-4">
+        <div className="mb-3 text-center">
+          <div className="text-[9px] font-bold uppercase tracking-[0.3em] text-[#6C2BD9]">
             Emerald Casino
           </div>
 
-          <h1 className="mt-2 text-4xl font-black md:text-6xl">
-            Blackjack
+          <h1 className="mt-1 text-3xl font-black">
+            BLACKJACK
           </h1>
 
-          <p className="mt-3 text-gray-500">
-            Beat the dealer. Reach 21.
+          <p className="mt-1 text-[11px] text-gray-600">
+            Beat the dealer and reach 21
           </p>
         </div>
 
-        <div className="overflow-hidden rounded-[32px] border border-emerald-900/50 bg-[#07130d] shadow-2xl">
-          <div className="relative min-h-[650px] overflow-hidden bg-[radial-gradient(circle_at_center,#174b31_0%,#0b291a_42%,#06100a_100%)] px-4 py-10 md:px-10">
-
-            <div className="absolute left-1/2 top-5 -translate-x-1/2 rounded-full border border-emerald-500/20 bg-black/20 px-5 py-2 text-[10px] font-bold uppercase tracking-[0.3em] text-emerald-500">
-              Emerald Blackjack
-            </div>
-
-            <div className="pt-10 text-center">
-              <div className="mb-5 flex items-center justify-center gap-3">
-                <span className="text-xs font-bold uppercase tracking-widest text-gray-500">
-                  Dealer
-                </span>
-
-                {dealer.length > 0 && (
-                  <span className="rounded-full bg-black/20 px-3 py-1 text-sm font-black">
-                    {dealerValue}
-                  </span>
-                )}
+        {showWinAnimation && win > 0 && (
+          <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center">
+            <div className="animate-bounce rounded-2xl border border-[#20C997]/50 bg-[#10251f] px-10 py-6 text-center shadow-[0_0_50px_rgba(32,201,151,0.35)]">
+              <div className="text-[12px] font-black uppercase tracking-[0.3em] text-[#20C997]">
+                WIN
               </div>
 
-              <div className="flex min-h-[185px] justify-center gap-3">
-                {dealer.length === 0 ? (
-                  <div className="flex items-center text-sm text-gray-700">
-                    Dealer is waiting...
+              <div className="mt-2 text-4xl font-black text-[#F5C542]">
+                +💎 {win.toLocaleString("en-US")}
+              </div>
+
+              <div className="mt-1 text-xs font-bold text-[#20C997]">
+                CONGRATULATIONS
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="overflow-hidden rounded-3xl border border-[#6C2BD9]/40 bg-[#111116]">
+          <div className="bg-[radial-gradient(circle_at_center,#29134f,#170d29,#0B0B0F)]">
+
+            {/* DEALER */}
+            <div className="min-h-[190px] px-4 py-4 text-center">
+              <div className="mb-2 text-[9px] font-black uppercase tracking-[0.3em] text-[#F5C542]">
+                DEALER
+              </div>
+
+              <div className="flex min-h-[135px] items-center justify-center gap-2">
+                {dealerCards.length === 0 ? (
+                  <div className="text-xs text-gray-600">
+                    Waiting for game
                   </div>
                 ) : (
-                  dealer.map((card, index) => (
+                  dealerCards.map((card, index) => (
                     <PlayingCard
-                      key={`${card.rank}${card.suit}${index}`}
+                      key={index}
                       card={card}
                       hidden={
-                        dealerHidden && index === 1
+                        playing && index === 1
                       }
                     />
                   ))
                 )}
               </div>
+
+              <div className="h-6">
+                {dealerCards.length > 0 &&
+                  !playing && (
+                    <div className="text-lg font-black text-white">
+                      {handValue(dealerCards)}
+                    </div>
+                  )}
+              </div>
             </div>
 
-            <div className="mx-auto my-9 flex max-w-2xl items-center gap-4">
-              <div className="h-px flex-1 bg-emerald-400/10" />
-
-              <div className="rounded-full border border-emerald-500/10 px-4 py-2 text-xs font-bold text-emerald-500/50">
-                VS
+            {/* YOU */}
+            <div className="min-h-[210px] border-t border-[#6C2BD9]/40 bg-[radial-gradient(circle_at_center,#351765,#24103f,#12091f)] px-4 py-4 text-center shadow-[inset_0_0_50px_rgba(108,43,217,0.15)]">
+              <div className="mb-2 text-[9px] font-black uppercase tracking-[0.3em] text-[#F5C542]">
+                YOU
               </div>
 
-              <div className="h-px flex-1 bg-emerald-400/10" />
-            </div>
-
-            <div className="text-center">
-              <div className="mb-5 flex items-center justify-center gap-3">
-                <span className="text-xs font-bold uppercase tracking-widest text-gray-500">
-                  You
-                </span>
-
-                {player.length > 0 && (
-                  <span className="rounded-full bg-black/20 px-3 py-1 text-sm font-black text-emerald-400">
-                    {playerValue}
-                  </span>
-                )}
-              </div>
-
-              <div className="flex min-h-[185px] justify-center gap-3">
-                {player.length === 0 ? (
-                  <div className="flex items-center text-sm text-gray-700">
-                    Choose your bet below
+              <div className="flex min-h-[135px] items-center justify-center gap-2">
+                {playerCards.length === 0 ? (
+                  <div className="text-xs text-gray-600">
+                    Waiting for game
                   </div>
                 ) : (
-                  player.map((card, index) => (
+                  playerCards.map((card, index) => (
                     <PlayingCard
-                      key={`${card.rank}${card.suit}${index}`}
+                      key={index}
                       card={card}
                     />
                   ))
                 )}
               </div>
-            </div>
-          </div>
 
-          <div className="border-t border-emerald-900/40 bg-[#08120d] p-6 md:p-10">
-            <div className="mx-auto max-w-4xl">
-
-              <div className="mb-7 text-center">
-                <div className="text-sm text-gray-500">
-                  {status}
-                </div>
-
-                {activeBet > 0 && (
-                  <div className="mt-2 text-xs text-gray-700">
-                    Active bet: 💎{" "}
-                    {activeBet.toLocaleString("en-US")}
+              <div className="h-6">
+                {playerCards.length > 0 && (
+                  <div
+                    className={
+                      "text-lg font-black " +
+                      (handValue(playerCards) > 21
+                        ? "text-[#E0525F]"
+                        : "text-white")
+                    }
+                  >
+                    {handValue(playerCards)}
                   </div>
                 )}
               </div>
 
-              {!playing && !gameFinished && (
-                <div className="mx-auto max-w-xl">
-                  <div className="mb-3 text-center text-xs font-bold uppercase tracking-widest text-gray-500">
-                    Choose Bet
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-                    {betOptions.map((amount) => {
-                      const selected =
-                        bet === amount;
-
-                      const disabled =
-                        amount > balance;
-
-                      return (
-                        <button
-                          key={amount}
-                          onClick={() =>
-                            setBetAmount(amount)
-                          }
-                          disabled={disabled}
-                          className={`rounded-xl border px-3 py-3 text-sm font-black transition ${
-                            selected
-                              ? "border-emerald-500 bg-emerald-500 text-black"
-                              : "border-gray-800 bg-[#050b08] text-gray-400 hover:border-emerald-700 hover:text-white"
-                          } ${
-                            disabled
-                              ? "cursor-not-allowed opacity-25"
-                              : ""
-                          }`}
-                        >
-                          {amount}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    <button
-                      onClick={halfBet}
-                      disabled={balance <= 0}
-                      className="rounded-xl border border-gray-800 bg-[#050b08] py-3 text-sm font-black text-gray-400 transition hover:border-gray-600 hover:text-white disabled:opacity-30"
-                    >
-                      ½ BALANCE
-                    </button>
-
-                    <button
-                      onClick={maxBet}
-                      disabled={balance <= 0}
-                      className="rounded-xl border border-gray-800 bg-[#050b08] py-3 text-sm font-black text-gray-400 transition hover:border-gray-600 hover:text-white disabled:opacity-30"
-                    >
-                      MAX
-                    </button>
-                  </div>
-
-                  <div className="mt-5 rounded-2xl border border-gray-800 bg-[#050b08] p-5 text-center">
-                    <div className="text-xs uppercase tracking-widest text-gray-600">
-                      Selected Bet
-                    </div>
-
-                    <div className="mt-1 text-3xl font-black text-emerald-400">
-                      💎 {bet.toLocaleString("en-US")}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-8 flex flex-wrap justify-center gap-3">
-                {gameFinished ? (
-                  <button
-                    onClick={newGame}
-                    className="rounded-2xl bg-emerald-500 px-14 py-4 font-black text-black transition hover:bg-emerald-400"
+              <div className="mt-1 h-7">
+                {result && (
+                  <div
+                    className={
+                      win > 0 &&
+                      result !== "PUSH"
+                        ? "text-xl font-black text-[#20C997]"
+                        : result === "PUSH"
+                          ? "text-xl font-black text-[#F5C542]"
+                          : "text-xl font-black text-[#E0525F]"
+                    }
                   >
-                    NEW GAME
-                  </button>
-                ) : !playing ? (
+                    {result}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* CONTROLS */}
+          <div className="border-t border-[#6C2BD9]/30 bg-[#0B0B0F] p-3">
+            <div className="mx-auto max-w-5xl">
+              <div className="mb-1 text-center text-[9px] font-bold uppercase tracking-widest text-gray-600">
+                BET
+              </div>
+
+              <div className="flex items-center justify-center gap-3">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={bet}
+                  disabled={playing}
+                  onChange={handleBetInput}
+                  className="w-32 rounded-xl border border-[#6C2BD9]/50 bg-[#15131D] px-3 py-2 text-center text-lg font-black text-[#F5C542] outline-none focus:border-[#F5C542]"
+                />
+
+                <span className="text-xs font-black text-gray-600">
+                  / {balance.toLocaleString("en-US")} 💎
+                </span>
+              </div>
+
+              <div className="mt-2 flex items-center gap-3">
+                <span className="w-8 text-left text-xs font-black text-gray-500">
+                  0
+                </span>
+
+                <input
+                  type="range"
+                  min="0"
+                  max={Math.max(balance, 1)}
+                  step="1"
+                  value={Math.min(bet, balance)}
+                  disabled={
+                    playing || balance <= 0
+                  }
+                  onChange={(event) =>
+                    setBet(
+                      Number(event.target.value)
+                    )
+                  }
+                  className="h-2 w-full cursor-pointer accent-[#F5C542]"
+                />
+
+                <span className="w-12 text-right text-xs font-black text-[#F5C542]">
+                  ALL IN
+                </span>
+              </div>
+
+              {/* FIXED BUTTON AREA */}
+              <div className="mt-3 flex h-[44px] items-center justify-center gap-2">
+                {!playing && !result && (
                   <button
+                    type="button"
                     onClick={startGame}
                     disabled={
-                      balance <= 0 ||
                       bet <= 0 ||
                       bet > balance
                     }
-                    className="rounded-2xl bg-emerald-500 px-14 py-4 font-black text-black transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="h-[44px] min-w-[120px] rounded-xl bg-[#6C2BD9] px-8 text-sm font-black text-white hover:bg-[#7d3be8] disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     DEAL
                   </button>
-                ) : (
+                )}
+
+                {playing && (
                   <>
                     <button
+                      type="button"
                       onClick={hit}
-                      className="rounded-2xl border border-emerald-700 bg-[#0d2117] px-9 py-4 font-black transition hover:border-emerald-400 hover:bg-[#10301f]"
+                      className="h-[44px] min-w-[100px] rounded-xl bg-[#6C2BD9] px-6 text-sm font-black text-white hover:bg-[#7d3be8]"
                     >
                       HIT
                     </button>
 
                     <button
+                      type="button"
                       onClick={stand}
-                      className="rounded-2xl border border-gray-700 bg-[#111814] px-9 py-4 font-black transition hover:border-gray-500"
+                      className="h-[44px] min-w-[100px] rounded-xl bg-[#F5C542] px-6 text-sm font-black text-black hover:bg-[#ffd45e]"
                     >
                       STAND
                     </button>
 
                     <button
+                      type="button"
                       onClick={doubleDown}
                       disabled={
-                        player.length !== 2 ||
-                        balance < activeBet
+                        playerCards.length !== 2
                       }
-                      className="rounded-2xl border border-emerald-700 bg-emerald-950/40 px-9 py-4 font-black text-emerald-400 transition hover:border-emerald-400 disabled:cursor-not-allowed disabled:opacity-30"
+                      className="h-[44px] min-w-[100px] rounded-xl border border-[#F5C542]/50 bg-[#15131D] px-6 text-sm font-black text-[#F5C542] hover:border-[#F5C542] disabled:cursor-not-allowed disabled:opacity-30"
                     >
                       DOUBLE
                     </button>
                   </>
                 )}
+
+                {!playing && result && (
+                  <button
+                    type="button"
+                    onClick={newGame}
+                    className="h-[44px] min-w-[120px] rounded-xl bg-[#6C2BD9] px-8 text-sm font-black text-white hover:bg-[#7d3be8]"
+                  >
+                    NEW GAME
+                  </button>
+                )}
               </div>
-
-              <div className="mx-auto mt-9 grid max-w-3xl grid-cols-1 gap-3 text-center sm:grid-cols-3">
-                <div className="rounded-xl border border-gray-900 bg-[#060d09] p-4">
-                  <div className="font-bold text-gray-400">
-                    BLACKJACK
-                  </div>
-                  <div className="mt-1 text-xs text-gray-600">
-                    2.5× payout
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-gray-900 bg-[#060d09] p-4">
-                  <div className="font-bold text-gray-400">
-                    DEALER
-                  </div>
-                  <div className="mt-1 text-xs text-gray-600">
-                    Stands on 17
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-gray-900 bg-[#060d09] p-4">
-                  <div className="font-bold text-gray-400">
-                    PUSH
-                  </div>
-                  <div className="mt-1 text-xs text-gray-600">
-                    Bet returned
-                  </div>
-                </div>
-              </div>
-
             </div>
           </div>
+        </div>
+
+        <div className="mt-4 text-center">
+          <span className="text-xs font-black text-[#F5C542]">
+            BLACKJACK 2.5x
+          </span>
+
+          <span className="mx-3 text-gray-800">•</span>
+
+          <span className="text-xs font-black text-[#F5C542]">
+            NORMAL WIN 2x
+          </span>
+
+          <span className="mx-3 text-gray-800">•</span>
+
+          <span className="text-xs font-black text-[#F5C542]">
+            DEALER STANDS ON 17
+          </span>
         </div>
       </section>
     </main>
