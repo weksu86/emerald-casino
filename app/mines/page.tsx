@@ -175,6 +175,7 @@ export default function MinesPage() {
     balance,
     removeEmeralds,
     addEmeralds,
+    recordGameResult,
   } = useEmeralds();
 
   const [soundEnabled] =
@@ -291,6 +292,7 @@ export default function MinesPage() {
       setLost(true);
       setPlaying(false);
       setLastPayout(0);
+      recordGameResult("mines", 0);
 
       return;
     }
@@ -321,6 +323,7 @@ export default function MinesPage() {
         );
 
       addEmeralds(payout);
+      recordGameResult("mines", payout);
 
       setLastPayout(payout);
       setCashedOut(true);
@@ -350,6 +353,7 @@ export default function MinesPage() {
       );
 
     addEmeralds(payout);
+    recordGameResult("mines", payout);
 
     setLastPayout(payout);
     setCashedOut(true);
@@ -499,6 +503,13 @@ export default function MinesPage() {
                 className="transition hover:text-white"
               >
                 Case
+              </Link>
+
+              <Link
+                href="/leaderboard"
+                className="transition hover:text-white"
+              >
+                Leaderboard
               </Link>
 
             </nav>

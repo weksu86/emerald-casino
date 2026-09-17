@@ -319,8 +319,12 @@ function PlayingCard({
 }
 
 export default function BlackjackPage() {
-  const { balance, removeEmeralds, addEmeralds } =
-    useEmeralds();
+  const {
+    balance,
+    removeEmeralds,
+    addEmeralds,
+    recordGameResult,
+  } = useEmeralds();
 
   const [playerCards, setPlayerCards] =
     useState<Card[]>([]);
@@ -552,6 +556,14 @@ export default function BlackjackPage() {
     setResult(message);
     setWin(payout);
 
+    const statsWin =
+      message === "PUSH" ? 0 : payout;
+
+    recordGameResult(
+      "blackjack",
+      statsWin
+    );
+
     if (payout > 0) {
       addEmeralds(payout);
 
@@ -714,6 +726,15 @@ export default function BlackjackPage() {
                 className="transition hover:text-white"
               >
                 Case
+              </Link>
+
+              <Link
+                onMouseEnter={() => playSound("ui-hover")}
+                onClick={() => playSound("ui-click")}
+                href="/leaderboard"
+                className="transition hover:text-white"
+              >
+                Leaderboard
               </Link>
 
             </nav>

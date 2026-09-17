@@ -308,6 +308,14 @@ export default function Home() {
               >
                 Case
               </Link>
+
+              <Link
+                {...soundProps}
+                href="/leaderboard"
+                className="transition hover:text-white"
+              >
+                Leaderboard
+              </Link>
             </nav>
 
             {/* DEPOSIT / WITHDRAW */}
@@ -627,7 +635,15 @@ export default function Home() {
           <div className="relative">
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div><div className="text-[10px] font-black uppercase tracking-[0.35em] text-[#6C2BD9]">CS ACE</div><h2 className="mt-2 text-2xl font-black text-white">LEADERBOARD</h2><p className="mt-2 text-xs text-gray-500">Top 3 players by all-time peak Emerald balance.</p></div>
-              {myUsername && <div className="rounded-full border border-[#6C2BD9]/30 bg-[#6C2BD9]/10 px-4 py-2 text-[9px] font-black uppercase tracking-[0.18em] text-[#A78BFA]">PLAYING AS {myUsername}</div>}
+              {myUsername && (
+                <Link
+                  {...soundProps}
+                  href="/profile"
+                  className="rounded-full border border-[#6C2BD9]/30 bg-[#6C2BD9]/10 px-4 py-2 text-[9px] font-black uppercase tracking-[0.18em] text-[#A78BFA] transition hover:border-[#F5C542]/50 hover:bg-[#F5C542]/10 hover:text-[#F5C542]"
+                >
+                  PLAYING AS {myUsername} →
+                </Link>
+              )}
             </div>
             {leaderboardLoading ? <div className="mt-6 rounded-2xl border border-[#6C2BD9]/20 bg-[#0B0B0F] px-5 py-10 text-center text-[10px] font-black uppercase tracking-[0.25em] text-gray-600">Loading leaderboard...</div> : leaderboard.length === 0 ? <div className="mt-6 rounded-2xl border border-[#6C2BD9]/20 bg-[#0B0B0F] px-5 py-10 text-center text-sm font-black text-white">No players yet</div> : <div className="mt-6 grid gap-3 md:grid-cols-3">
               {leaderboard.map((player,index)=><div key={player.userId} className={`relative overflow-hidden rounded-2xl border p-5 ${index===0?"border-[#F5C542]/45 bg-[#F5C542]/[0.055]":"border-[#6C2BD9]/25 bg-[#0B0B0F]"}`}>

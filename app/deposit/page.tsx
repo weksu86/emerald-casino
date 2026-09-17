@@ -474,6 +474,15 @@ export default function DepositPage() {
                 Case
               </Link>
 
+              <Link
+                onMouseEnter={() => playSound("ui-hover")}
+                onClick={() => playSound("ui-click")}
+                href="/leaderboard"
+                className="transition hover:text-white"
+              >
+                Leaderboard
+              </Link>
+
             </nav>
 
             <nav className="ml-auto mr-6 flex items-center gap-3">

@@ -470,6 +470,7 @@ export default function JokerPokerPage() {
     balance,
     addEmeralds,
     removeEmeralds,
+    recordGameResult,
   } = useEmeralds();
 
   const [cards, setCards] = useState<Card[]>([]);
@@ -624,6 +625,7 @@ export default function JokerPokerPage() {
 
     setResult(hand);
     setWin(payout);
+    recordGameResult("joker-poker", payout);
 
     if (payout > 0) {
       addEmeralds(payout);
@@ -766,6 +768,15 @@ export default function JokerPokerPage() {
                 className="transition hover:text-white"
               >
                 Case
+              </Link>
+
+              <Link
+                onMouseEnter={() => playSound("ui-hover")}
+                onClick={() => playSound("ui-click")}
+                href="/leaderboard"
+                className="transition hover:text-white"
+              >
+                Leaderboard
               </Link>
 
             </nav>
